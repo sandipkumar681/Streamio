@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { backendCaller } from "../utils/backendCaller";
 import LoginContext from "../../context/Login/LoginContext";
 
-function Login() {
+const Login = () => {
   const navigate = useNavigate();
   const [message, setMessage] = useState("");
   const [inputData, setInputData] = useState({
@@ -115,6 +115,6 @@ function Login() {
       </div>
     </div>
   );
-}
+};
 
 export default Login;

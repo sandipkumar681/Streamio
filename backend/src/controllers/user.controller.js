@@ -109,7 +109,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
   if (error) {
     removeFiles();
-
     return res
       .status(400)
       .json(new apiResponse(400, {}, error.details[0].message));
@@ -294,6 +293,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     const { newAccessToken, newRefreshToken } =
       await generateAccessAndRefreshToken(user._id);
 
+    await User.findByIdAndUpdate(user._id, {
+      refreshToken: newRefreshToken,
+    });
+
     return res
       .status(200)
       .cookie("accessToken", newAccessToken, accessTokenOptions)
@@ -377,12 +380,12 @@ const getCurrentUserDetails = asyncHandler(async (req, res) => {
 
 const changeAccountDetails = asyncHandler(async (req, res) => {
   try {
-    const { userName, email, fullName } = req.body;
+    const { email, fullName, otp } = req.body;
 
     const schema = Joi.object({
       fullName: Joi.string().min(3).max(30).required(),
-      userName: Joi.string().min(3).max(30).required(),
       email: Joi.string().email().required(),
+      otp: Joi.string().exist().required(),
     });
 
     const { error, value } = schema.validate(req.body);
@@ -394,7 +397,7 @@ const changeAccountDetails = asyncHandler(async (req, res) => {
     }
 
     if (
-      [userName, email, fullName].some((val) => {
+      [email, fullName, otp].some((val) => {
         return val.trim();
       }) === ""
     ) {
@@ -403,11 +406,32 @@ const changeAccountDetails = asyncHandler(async (req, res) => {
         .json(new apiResponse(400, {}, "Field can not be blank!"));
     }
 
+    const otpInDb = await Otp.findOne({ email });
+
+    if (Number(otp) !== otpInDb?.otp) {
+      return res
+        .status(400)
+        .json(new apiResponse(400, {}, "Otp is incorrect!"));
+    }
+
+    const isNewEmailAlreadyExists = await User.findOne({ email });
+
+    const prevUser = await User.findById(req.user._id);
+
+    if (
+      isNewEmailAlreadyExists &&
+      isNewEmailAlreadyExists.email !== prevUser.email
+    ) {
+      return res
+        .status(400)
+        .json(new apiResponse(400, {}, "New email already exists!"));
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { $set: { userName, email, fullName } },
+      { $set: { email, fullName } },
       { new: true }
-    ).select("-password -refreshToken");
+    ).select("-password -refreshToken -__v");
 
     return res
       .status(200)
@@ -424,15 +448,7 @@ const updateAvatar = asyncHandler(async (req, res) => {
   try {
     const avatarLocalPath = req.file?.path;
 
-    const removeFiles = () => {
-      if (avatarLocalPath) {
-        unlinkSync(avatarLocalPath);
-      }
-    };
-
     if (!avatarLocalPath) {
-      removeFiles();
-
       return res
         .status(400)
         .json(new apiResponse(400, {}, "Must require an avatar file!"));
@@ -441,8 +457,6 @@ const updateAvatar = asyncHandler(async (req, res) => {
     const avatar = await uploadOnCloudinary(avatarLocalPath);
 
     if (!avatar) {
-      removeFiles();
-
       return res
         .status(400)
         .json(new apiResponse(400, {}, "Error while uploading avatar"));
@@ -456,7 +470,9 @@ const updateAvatar = asyncHandler(async (req, res) => {
       req.user._id,
       { $set: { avatar: avatar.url } },
       { new: true }
-    ).select("-password -refreshToken");
+    ).select(
+      "-password -refreshToken -__v -createdAt -updatedAt -watchHistory"
+    );
 
     res
       .status(200)
@@ -473,15 +489,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
   try {
     const coverImageLocalPath = req.file?.path;
 
-    const removeFiles = () => {
-      if (coverImageLocalPath) {
-        unlinkSync(coverImageLocalPath);
-      }
-    };
-
     if (!coverImageLocalPath) {
-      removeFiles();
-
       return res
         .status(400)
         .json(new apiResponse(400, {}, "Must require an cover image file!"));
@@ -490,8 +498,6 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
     if (!coverImage) {
-      removeFiles();
-
       return res
         .status(400)
         .json(new apiResponse(400, {}, "Error while uploading cover image!"));
@@ -505,7 +511,9 @@ const updateCoverImage = asyncHandler(async (req, res) => {
       req.user._id,
       { $set: { coverImage: coverImage.url } },
       { new: true }
-    ).select("-password -refreshToken");
+    ).select(
+      "-password -refreshToken  -__v -createdAt -updatedAt -watchHistory"
+    );
 
     res
       .status(200)
@@ -519,21 +527,15 @@ const updateCoverImage = asyncHandler(async (req, res) => {
 });
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
-  // https://www.youtube.com/watch?v=qNnR7cuVliI&list=PLu71SKxNbfoBGh_8p_NS-ZAh6v7HhYqHW&index=20
-  const { username } = req.params;
-
-  if (!username?.trim()) {
-    return res
-      .status(400)
-      .json(new apiResponse(400, {}, "username is missing"));
-  }
+  const userName = req.user.userName;
 
   const channel = await User.aggregate([
     {
       $match: {
-        username: username?.toLowerCase(),
+        userName,
       },
     },
+
     {
       $lookup: {
         from: "subscriptions",
@@ -544,44 +546,71 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     },
     {
       $lookup: {
-        from: "subscriptions",
+        from: "videos",
         localField: "_id",
-        foreignField: "subscriber",
-        as: "subscribedTo",
+        foreignField: "owner",
+        as: "videos",
+        pipeline: [
+          {
+            $lookup: {
+              from: "likes",
+              localField: "_id",
+              foreignField: "video",
+              as: "likesCount",
+            },
+          },
+          {
+            $lookup: {
+              from: "comments",
+              localField: "_id",
+              foreignField: "video",
+              as: "commentsCount",
+            },
+          },
+          {
+            $addFields: {
+              likesCount: {
+                $size: "$likesCount",
+              },
+              commentsCount: {
+                $size: "$commentsCount",
+              },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalVideos: { $sum: 1 },
+              totalLikes: {
+                $sum: "$likesCount",
+              },
+              totalComments: {
+                $sum: "$commentsCount",
+              },
+              totalViews: { $sum: "$views" },
+            },
+          },
+        ],
       },
     },
     {
       $addFields: {
-        subscribersCount: {
+        totalSubscribers: {
           $size: "$subscribers",
         },
-        channelsSubscribedToCount: {
-          $size: "$subscribedTo",
-        },
-        isSubscribed: {
-          $cond: {
-            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
-            then: true,
-            else: false,
-          },
-        },
+        channelInfo: { $first: "$videos" },
       },
     },
     {
       $project: {
+        _id: 1,
         fullName: 1,
-        username: 1,
-        subscribersCount: 1,
-        channelsSubscribedToCount: 1,
-        isSubscribed: 1,
-        avatar: 1,
-        coverImage: 1,
-        email: 1,
+        userName: 1,
+        totalSubscribers: 1,
+        channelInfo: 1,
       },
     },
   ]);
-
-  console.log(channel);
 
   if (!channel?.length) {
     return res

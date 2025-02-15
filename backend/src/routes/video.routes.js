@@ -8,6 +8,7 @@ import {
   deleteVideo,
   togglePublishStatus,
   fetchVideosForHome,
+  fetchAllVideosForDashboardVideos,
 } from "../controllers/video.controller.js";
 
 const router = Router();
@@ -21,7 +22,11 @@ router.route("/uploadVideo").post(
   uploadVideo
 );
 
-router.route("/fetchallvideos/:username").get(fetchAllVideosForUser);
+router.route("/fetchvideos/:userName").get(fetchAllVideosForUser);
+
+router
+  .route("/fetchvideo-dashboardvideos")
+  .get(verifyJWT, fetchAllVideosForDashboardVideos);
 
 router.route("/fetchvideo/:videoId").get(fetchVideoById);
 

@@ -16,6 +16,10 @@ import Login from "./components/account/Login.jsx";
 import ForgetPassword from "./components/account/ForgetPassword.jsx";
 import UploadVideo from "./components/video/UploadVideo.jsx";
 import Profile from "./components/account/Profile.jsx";
+import ChangeUserDetails from "./components/account/ChangeUserDetails.jsx";
+import ChangePassword from "./components/account/ChangePassword.jsx";
+import DashBoard from "./components/account/DashBoard.jsx";
+import DashBoardVideos from "./components/video/DashBoardVideos.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -26,11 +30,17 @@ const router = createBrowserRouter(
         <Route path="signup" element={<Signup />} />
         <Route path="login" element={<Login />} />
         <Route path="forgot-password" element={<ForgetPassword />} />
-        <Route path="profile" element={<Profile />} />
+        <Route path="profile/">
+          <Route path="" element={<Profile />} />
+          <Route path="change-user-details" element={<ChangeUserDetails />} />
+          <Route path="change-password" element={<ChangePassword />} />
+          <Route path="dashboard" element={<DashBoard />} />
+        </Route>
       </Route>
       <Route path="video/">
         <Route path="upload-video" element={<UploadVideo />} />
         <Route path="watch/:id" element={<Watchvideo />} />
+        <Route path="dashboard-videos" element={<DashBoardVideos />} />
       </Route>
     </Route>
   )

@@ -1,6 +1,5 @@
 import mongoose, { isValidObjectId } from "mongoose";
 import { Like } from "../models/like.model.js";
-import { apiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import { Video } from "../models/video.model.js";
@@ -39,9 +38,9 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     await Like.deleteOne({ _id: likeId });
   }
 
-  res
+  return res
     .status(200)
-    .json(new apiResponse(200, {}, "Video like toggled successfully"));
+    .json(new apiResponse(200, {}, "Video like toggled successfully!"));
 });
 
 const toggleCommentLike = asyncHandler(async (req, res) => {

@@ -1,33 +1,82 @@
-import { useEffect, useContext } from "react";
+import { useEffect, useContext, useState } from "react";
 import { backendCaller } from "../utils/backendCaller";
 import LoginContext from "../../context/Login/LoginContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-function Profile() {
-  const { isLoggedIn, userDetails, setUserDetails } = useContext(LoginContext);
+const Profile = () => {
+  const { isLoggedIn, userDetails, setUserDetails, checkAuth } =
+    useContext(LoginContext);
   const navigate = useNavigate();
+  const [form, setForm] = useState({});
+  const [isEditAvatarOpen, setIsEditAvatarOpen] = useState(false);
+  const [isEditCoverImageOpen, setIsEditCoverImageOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const json = await backendCaller("/users/user-details");
-      if (json.success) {
-        setUserDetails({
-          _id: json.data._id,
-          fullName: json.data.fullName,
-          userName: json.data.userName,
-          avatar: json.data.avatar,
-          coverImage: json.data.coverImage,
-          email: json.data.email,
-        });
-      }
-    };
+    checkAuth();
+    // console.log("Inside useEffect!");
+  }, [isLoading]);
 
-    fetchUserData();
+  const handleChange = (e) => {
+    const { files } = e.target;
+    setForm({ file: files[0] });
+  };
 
-    if (!isLoggedIn) {
-      navigate("/account/login");
+  const handleChangeAvatar = async () => {
+    if (!form.file) return;
+
+    const formData = new FormData();
+    formData.append("avatar", form.file);
+
+    setIsLoading(true);
+    const json = await backendCaller(
+      "/users/change-avatar",
+      "PATCH",
+      {},
+      formData
+    );
+
+    setIsLoading(false);
+    if (json.success) {
+      // fetchUserData();
+      setForm({});
+      setIsEditAvatarOpen(false);
+    } else {
+      console.log("Error in frontend while updating avatar!");
     }
-  }, [isLoggedIn, setUserDetails]);
+  };
+
+  const handleChangeCoverImage = async () => {
+    if (!form.file) return;
+
+    const formData = new FormData();
+    formData.append("coverImage", form.file);
+
+    setIsLoading(true);
+    const json = await backendCaller(
+      "/users/change-coverImage",
+      "PATCH",
+      {},
+      formData
+    );
+
+    setIsLoading(false);
+    if (json.success) {
+      // fetchUserData();
+      setForm({});
+      setIsEditCoverImageOpen(false);
+    } else {
+      console.log("Error in frontend while updating cover image!");
+    }
+  };
+
+  if (!userDetails) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-gray-900 text-white">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-screen w-full text-white flex justify-center">
@@ -42,7 +91,7 @@ function Profile() {
             />
           )}
           <button
-            onClick={() => console.log("Edit Cover Image")}
+            onClick={() => setIsEditCoverImageOpen(true)}
             className="absolute bottom-3 right-3 bg-blue-600 text-white px-3 py-1 rounded shadow hover:bg-blue-500 transition"
           >
             Edit Cover Image
@@ -63,7 +112,7 @@ function Profile() {
               )}
             </div>
             <button
-              onClick={() => console.log("Edit Avatar")}
+              onClick={() => setIsEditAvatarOpen(true)}
               className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-full shadow hover:bg-blue-500 transition"
             >
               Edit Avatar
@@ -80,7 +129,10 @@ function Profile() {
 
         {/* Profile Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="bg-gray-800 shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow">
+          <Link
+            to="/account/profile/change-user-details"
+            className="bg-gray-800 shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow"
+          >
             <h2 className="text-lg font-semibold mb-2 text-white">
               Change Details
             </h2>
@@ -88,8 +140,11 @@ function Profile() {
             <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 transition">
               Go to Change Details
             </button>
-          </div>
-          <div className="bg-gray-800 shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow">
+          </Link>
+          <Link
+            to="/account/profile/change-password"
+            className="bg-gray-800 shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow"
+          >
             <h2 className="text-lg font-semibold mb-2 text-white">
               Change Password
             </h2>
@@ -97,22 +152,121 @@ function Profile() {
             <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 transition">
               Go to Change Password
             </button>
-          </div>
-          <div className="bg-gray-800 shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow">
+          </Link>
+          <Link
+            to="/account/profile/dashboard"
+            className="bg-gray-800 shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow"
+          >
             <h2 className="text-lg font-semibold mb-2 text-white">
-              Get Channel Profile
+              See Your Dashboard
             </h2>
-            <p className="text-gray-400 mb-4">
-              View or update your channel profile.
-            </p>
+            <p className="text-gray-400 mb-4">View your channel profile.</p>
             <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 transition">
-              Go to Channel Profile
+              Go to Dashboard
             </button>
-          </div>
+          </Link>
         </div>
       </div>
+
+      {/* Edit Avatar Modal */}
+      {isEditAvatarOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-lg w-1/2">
+            <h2 className="text-xl font-bold text-white mb-4">Edit Avatar</h2>
+            <div className="text-gray-400 mb-4 flex items-center space-x-4">
+              <label
+                htmlFor="file-upload-avatar"
+                className="custom-file-upload cursor-pointer border border-gray-300 inline-block px-4 py-2 text-gray-700 bg-white rounded hover:bg-gray-100 transition"
+              >
+                Choose File
+              </label>
+              <input
+                type="file"
+                id="file-upload-avatar"
+                className="hidden"
+                name="newAvatar"
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="flex justify-between">
+              <button
+                onClick={() => {
+                  setForm({});
+                  setIsEditAvatarOpen(false);
+                }}
+                className={`px-4 py-2 bg-red-600 text-white rounded hover:bg-red-500 transition ${
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                disabled={isLoading}
+              >
+                Close
+              </button>
+              <button
+                onClick={handleChangeAvatar}
+                className={`px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 transition ${
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                disabled={isLoading}
+              >
+                {isLoading ? "Uploading..." : "Submit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Cover Image Modal */}
+      {isEditCoverImageOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-lg w-1/2">
+            <h2 className="text-xl font-bold text-white mb-4">
+              Edit Cover Image
+            </h2>
+            <div className="text-gray-400 mb-4 flex items-center space-x-4">
+              <label
+                htmlFor="file-upload-cover"
+                className="custom-file-upload cursor-pointer border border-gray-300 inline-block px-4 py-2 text-gray-700 bg-white rounded hover:bg-gray-100 transition"
+              >
+                Choose File
+              </label>
+              <input
+                type="file"
+                id="file-upload-cover"
+                className="hidden"
+                name="newCoverImage"
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="flex justify-between">
+              <button
+                onClick={() => {
+                  setForm({});
+                  setIsEditCoverImageOpen(false);
+                }}
+                className={`px-4 py-2 bg-red-600 text-white rounded hover:bg-red-500 transition ${
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                disabled={isLoading}
+              >
+                Close
+              </button>
+              <button
+                onClick={handleChangeCoverImage}
+                className={`px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 transition ${
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                disabled={isLoading}
+              >
+                {isLoading ? "Uploading..." : "Submit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export default Profile;

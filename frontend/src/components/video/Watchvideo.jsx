@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useContext, useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import {
   PlayIcon,
@@ -9,9 +9,17 @@ import {
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
 } from "@heroicons/react/24/solid";
+import {
+  HandThumbUpIcon,
+  ShareIcon,
+  ArrowDownTrayIcon,
+  BookmarkIcon,
+} from "@heroicons/react/24/outline";
 import { backendCaller } from "../utils/backendCaller";
+import LoginContext from "../../context/Login/LoginContext";
+import ShareModal from "./ShareModal";
 
-function Watchvideo() {
+const Watchvideo = () => {
   const { id } = useParams();
   const [videoInfo, setVideoInfo] = useState({});
   const [relatedVideos, setRelatedVideos] = useState([]);
@@ -24,22 +32,26 @@ function Watchvideo() {
   const videoRef = useRef();
   const videoSectionRef = useRef();
   const infoSectionRef = useRef();
+  const { isLoggedIn } = useContext(LoginContext);
+  const navigate = useNavigate();
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const videoUrl = `${import.meta.env.VITE_FRONTEND_URL}/video/watch/${
+    videoInfo._id
+  }`;
 
   useEffect(() => {
     const fetchVideo = async () => {
       const json = await backendCaller(`/videos/fetchvideo/${id}`);
       setIsLoading(false);
+      console.log(json);
+
       if (json.success) {
-        setVideoInfo(json.data[0]);
+        setVideoInfo(json.data);
       } else {
         setMessage("Failed to fetch video");
       }
     };
 
-    fetchVideo();
-  }, [id]);
-
-  useEffect(() => {
     const fetchVideosForHome = async () => {
       const json = await backendCaller("/videos/fetchvideosforhome");
       setIsLoading(false);
@@ -49,9 +61,9 @@ function Watchvideo() {
         setMessage("Failed to fetch video!");
       }
     };
-
+    fetchVideo();
     fetchVideosForHome();
-  }, []);
+  }, [id]);
 
   const maximiseWindow = () => {
     if (videoSectionRef.current.requestFullscreen) {
@@ -151,6 +163,35 @@ function Watchvideo() {
     return Math.floor(duration % 60);
   };
 
+  const handleLikeToggle = async () => {
+    if (!isLoggedIn) {
+      navigate("/account/login");
+      return;
+    }
+    const json = await backendCaller(`/likes/togglevideolike/videoId=${id}`);
+    console.log(json);
+    if (json.success) {
+    } else {
+    }
+  };
+
+  const handleSubscriptionToggle = async () => {
+    if (!isLoggedIn) {
+      navigate("/account/login");
+      return;
+    }
+    const json = await backendCaller(
+      `/subscriptions/togglesubscription/channelId=${videoInfo?.ownerDetails?._id}`
+    );
+
+    if (json.success) {
+      setVideoInfo((prev) => ({
+        ...prev,
+        doesUserAlreadySubscribed: !prev.doesUserAlreadySubscribed,
+      }));
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen text-white">
@@ -244,13 +285,21 @@ function Watchvideo() {
                   {secondsToHours(currentDuration) ? ":" : ""}
                   {secondsToMinutes(currentDuration)}
                   {":"}
-                  {secondsToRemainderSeconds(currentDuration)} {" / "}
-                  {secondsToHours(currentDuration)
-                    ? secondsToHours(currentDuration)
+                  {String(secondsToRemainderSeconds(currentDuration)).length ===
+                  1
+                    ? "0"
                     : ""}
-                  {secondsToHours(currentDuration) ? ":" : ""}
+                  {secondsToRemainderSeconds(currentDuration)} {" / "}
+                  {secondsToHours(videoInfo.duration)
+                    ? secondsToHours(videoInfo.duration)
+                    : ""}
+                  {secondsToHours(videoInfo.duration) ? ":" : ""}
                   {secondsToMinutes(videoInfo.duration)}
                   {":"}
+                  {String(secondsToRemainderSeconds(videoInfo.duration))
+                    .length === 1
+                    ? "0"
+                    : ""}
                   {secondsToRemainderSeconds(videoInfo.duration)}
                 </button>
               </div>
@@ -269,17 +318,86 @@ function Watchvideo() {
           </div>
         </div>
 
+        {/* Video Info */}
         <div className="p-4">
-          <h1 className="text-lg md:text-2xl lg:text-3xl font-semibold text-white mb-2">
+          {/* Title */}
+          <h1 className="text-lg md:text-lg lg:text-2xl font-semibold text-white mb-2">
             {videoInfo.title}
           </h1>
-          <p className="text-gray-400 text-sm md:text-base mb-2">
-            {videoInfo.views} views •{" "}
-            {new Date(videoInfo.createdAt).toLocaleDateString()}
-          </p>
-          <p className="text-gray-300 text-sm sm:text-base">
-            {videoInfo.description}
-          </p>
+
+          {/* Channel Info Section */}
+          <div className="flex items-center justify-between mb-4">
+            {/* Start: Channel Info */}
+            <div className="flex items-center gap-4">
+              <img
+                src={videoInfo?.ownerDetails?.avatar}
+                alt="Channel Logo"
+                className="w-10 h-10 rounded-full"
+              />
+              <p className="text-white text-xl font-medium">
+                {videoInfo?.ownerDetails?.fullName}
+              </p>
+              {videoInfo.doesUserAlreadySubscribed ? (
+                <button
+                  onClick={handleSubscriptionToggle}
+                  className="px-4 py-1 bg-gray-700 text-white text-lg rounded-md hover:bg-gray-600"
+                >
+                  Unsubscribe
+                </button>
+              ) : (
+                <button
+                  onClick={handleSubscriptionToggle}
+                  className="px-4 py-1 bg-red-600 text-white text-lg rounded-md hover:bg-red-500"
+                >
+                  Subscribe
+                </button>
+              )}
+            </div>
+
+            {/* End: Action Buttons */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleLikeToggle}
+                className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 p-2 rounded-lg"
+              >
+                <HandThumbUpIcon className="h-6 w-6 mr-2" />{" "}
+                <div>{videoInfo.numberOfLikes}</div>
+              </button>
+              <button
+                onClick={() => setIsShareModalOpen(true)}
+                className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 p-2 rounded-lg"
+              >
+                <ShareIcon className="h-6 w-6 mr-2" />
+                <div>Share</div>
+              </button>
+              <ShareModal
+                videoUrl={videoUrl}
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+              />
+
+              <button className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 p-2 rounded-lg">
+                <ArrowDownTrayIcon className="h-6 w-6 mr-2" />
+                <div>Download</div>
+              </button>
+              <button className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 p-2 rounded-lg">
+                <BookmarkIcon className="h-6 w-6 mr-2" />
+                <div>Save</div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Comment Section */}
+        <div className="p-4 bg-gray-800 rounded-lg">
+          <h3 className="text-lg font-semibold text-white mb-4">Comments</h3>
+          <textarea
+            placeholder="Add a comment..."
+            className="w-full p-3 rounded-lg bg-gray-700 text-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          ></textarea>
+          <button className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500">
+            Post Comment
+          </button>
         </div>
       </div>
 
@@ -293,6 +411,13 @@ function Watchvideo() {
             <Link
               to={`/video/watch/${video._id}`}
               key={video._id}
+              onClick={() => {
+                setVideoInfo({});
+                // setRelatedVideos([]);
+                setIsVideoPlaying(false);
+                setCurrentDuration(0);
+                setIsMaximised(false);
+              }}
               className="flex items-center md:items-start gap-4 bg-gray-800 p-3 rounded-lg hover:bg-gray-700 transition"
             >
               <img
@@ -318,6 +443,6 @@ function Watchvideo() {
       </div>
     </div>
   );
-}
+};
 
 export default Watchvideo;

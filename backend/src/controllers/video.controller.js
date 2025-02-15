@@ -11,6 +11,9 @@ import { User } from "../models/user.model.js";
 import mongoose from "mongoose";
 import Joi from "joi";
 import { unlinkSync } from "node:fs";
+import { Like } from "../models/like.model.js";
+import { Subscription } from "../models/subscription.model.js";
+import jwt from "jsonwebtoken";
 
 const uploadVideo = asyncHandler(async (req, res) => {
   try {
@@ -126,8 +129,6 @@ const fetchVideoById = asyncHandler(async (req, res) => {
         .json(new apiResponse(400, {}, "Provide video id!"));
     }
 
-    // const video = await Video.findById(videoId);
-
     const video = await Video.aggregate([
       {
         $match: {
@@ -154,13 +155,14 @@ const fetchVideoById = asyncHandler(async (req, res) => {
           from: "users",
           localField: "owner",
           foreignField: "_id",
-          as: "owner_details",
+          as: "ownerDetails",
           pipeline: [
             {
               $project: {
                 _id: 1,
                 userName: 1,
                 avatar: 1,
+                fullName: 1,
               },
             },
           ],
@@ -168,8 +170,8 @@ const fetchVideoById = asyncHandler(async (req, res) => {
       },
       {
         $addFields: {
-          owner_details: {
-            $first: "$owner_details",
+          ownerDetails: {
+            $first: "$ownerDetails",
           },
         },
       },
@@ -182,9 +184,9 @@ const fetchVideoById = asyncHandler(async (req, res) => {
           description: 1,
           duration: 1,
           views: 1,
-          owner_details: 1,
+          ownerDetails: 1,
           createdAt: 1,
-          numberOfLikesOnAVideo: {
+          numberOfLikes: {
             $size: "$numberOfLikesOnAVideo",
           },
         },
@@ -192,7 +194,51 @@ const fetchVideoById = asyncHandler(async (req, res) => {
     ]);
 
     if (video.length === 0) {
-      res.status(404).json(new apiResponse(404, {}, "Video does not exists!"));
+      return res
+        .status(404)
+        .json(new apiResponse(404, {}, "Video does not exists!"));
+    }
+
+    // const userId = "676510b5512fc5d1c5d7c390";
+    let doesUserAlreadyLiked = false;
+    let doesUserAlreadySubscribed = false;
+
+    const token =
+      req.cookies?.accessToken ||
+      req.header("Authorization")?.replace("Bearer ", "");
+
+    if (token) {
+      const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+      if (decodedToken) {
+        const user = await User.findById(decodedToken._id).select(
+          "-password -refreshToken -__v -createdAt -updatedAt -watchHistory"
+        );
+
+        const userId = user._id;
+
+        doesUserAlreadyLiked = await Like.findOne({
+          $and: [{ video: videoId }, { likedBy: userId }],
+        });
+
+        if (doesUserAlreadyLiked) {
+          doesUserAlreadyLiked = true;
+        } else {
+          doesUserAlreadyLiked = false;
+        }
+
+        doesUserAlreadySubscribed = await Subscription.findOne({
+          $and: [
+            { channel: video[0]?.ownerDetails?._id.toString() },
+            { subscriber: userId },
+          ],
+        });
+
+        if (doesUserAlreadySubscribed) {
+          doesUserAlreadySubscribed = true;
+        } else {
+          doesUserAlreadySubscribed = false;
+        }
+      }
     }
 
     await Video.findByIdAndUpdate(
@@ -203,9 +249,15 @@ const fetchVideoById = asyncHandler(async (req, res) => {
       { new: true }
     );
 
-    res
+    return res
       .status(200)
-      .json(new apiResponse(200, video, "Video fetched successfully"));
+      .json(
+        new apiResponse(
+          200,
+          { ...video[0], doesUserAlreadyLiked, doesUserAlreadySubscribed },
+          "Video fetched successfully"
+        )
+      );
   } catch (error) {
     throw new apiError(
       error.statusCode || 500,
@@ -244,7 +296,7 @@ const fetchAllVideosForUser = asyncHandler(async (req, res) => {
         .json(new apiResponse(400, {}, "There is no videos uploaded yet!"));
     }
 
-    res
+    return res
       .status(200)
       .json(
         new apiResponse(200, videos, "Videos fetched successfully for user")
@@ -255,6 +307,20 @@ const fetchAllVideosForUser = asyncHandler(async (req, res) => {
       error.message || "Internal server error while fetching video for user!"
     );
   }
+});
+
+const fetchAllVideosForDashboardVideos = asyncHandler(async (req, res) => {
+  const video = await Video.find({ owner: req.user._id.toString() });
+
+  if (!video.length) {
+    return res
+      .status(400)
+      .json(new apiResponse(400, {}, "No videos are uploaded till now"));
+  }
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, video, "Videos fetched successfully!"));
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
@@ -284,7 +350,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
     await Video.findByIdAndDelete(req.params.videoId);
 
-    res
+    return res
       .status(200)
       .json(new apiResponse(200, {}, "Video deleted successfully"));
   } catch (error) {
@@ -328,7 +394,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
       { new: true }
     );
 
-    res
+    return res
       .status(200)
       .json(new apiResponse(200, updatedVideo, "Toggled successfully!"));
   } catch (error) {
@@ -373,7 +439,7 @@ const fetchVideosForHome = asyncHandler(async (req, res) => {
     },
   ]);
 
-  res
+  return res
     .status(200)
     .json(new apiResponse(200, videos, "Videos fetched successfully"));
 });
@@ -382,6 +448,7 @@ export {
   uploadVideo,
   fetchVideoById,
   fetchAllVideosForUser,
+  fetchAllVideosForDashboardVideos,
   deleteVideo,
   togglePublishStatus,
   fetchVideosForHome,

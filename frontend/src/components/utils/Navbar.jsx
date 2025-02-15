@@ -1,18 +1,20 @@
 import { useContext } from "react";
 import SidebarContext from "../../context/Sidebar/SidebarContext";
 import { MagnifyingGlassIcon, Bars3Icon } from "@heroicons/react/24/solid";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { backendCaller } from "./backendCaller";
 import LoginContext from "../../context/Login/LoginContext";
 
 const Navbar = () => {
   const { isMenuOpen, setIsMenuOpen } = useContext(SidebarContext);
   const { isLoggedIn, setIsLoggedIn, userDetails } = useContext(LoginContext);
+  const navigate = useNavigate();
 
   const handleLogOut = async () => {
     const json = await backendCaller("/users/logout");
     if (json.success) {
       setIsLoggedIn(false);
+      navigate("/");
     }
   };
 

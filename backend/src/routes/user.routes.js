@@ -35,7 +35,7 @@ router.route("/login").post(loginUser);
 
 router.route("/logout").get(verifyJWT, logoutUser);
 
-router.route("/refresh-tokens").post(refreshAccessToken);
+router.route("/refresh-tokens").get(refreshAccessToken);
 
 router.route("/change-password").patch(verifyJWT, changeCurrentPassword);
 
@@ -51,7 +51,7 @@ router
   .route("/change-coverImage")
   .patch(verifyJWT, upload.single("coverImage"), updateCoverImage);
 
-router.route("/c/:username").get(verifyJWT, getUserChannelProfile);
+router.route("/dashboard").get(verifyJWT, getUserChannelProfile);
 
 router.route("/history").get(verifyJWT, getWatchHistory);
 

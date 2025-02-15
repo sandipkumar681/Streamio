@@ -1,6 +1,5 @@
-import mongoose, { isValidObjectId } from "mongoose";
 import { Subscription } from "../models/subscription.model.js";
-import { apiError } from "../utils/apiError.js";
+import { User } from "../models/user.model.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 const toggleSubscription = asyncHandler(async (req, res) => {
@@ -11,6 +10,14 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     return res
       .status(400)
       .json(new apiResponse(400, {}, "Channel id must required!"));
+  }
+
+  const doesChannelExists = await User.findById(channelId);
+
+  if (!doesChannelExists) {
+    return res
+      .status(400)
+      .json(new apiResponse(400, {}, "Channel doesnot exists!"));
   }
 
   const userId = req.user._id.toString();
@@ -30,7 +37,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     await Subscription.deleteOne({ _id: subscribeId });
   }
 
-  res
+  return res
     .status(200)
     .json(new apiResponse(200, {}, "subscription toggled successfully"));
 });
@@ -49,9 +56,8 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     { $match: { channel: new mongoose.Types.ObjectId(channelId) } },
     { $count: "numberOfSubscribers" },
   ]);
-  // console.log(subscribers);
 
-  res
+  return res
     .status(201)
     .json(
       new apiResponse(201, subscribers, "Subscribers fetched successfully!")
@@ -90,7 +96,7 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
     { $project: { _id: 1, channel: 1 } },
   ]);
 
-  res
+  return res
     .status(200)
     .json(new apiResponse(200, channels, "Channels fetched successfully!"));
 });
