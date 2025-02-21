@@ -18,6 +18,7 @@ import jwt from "jsonwebtoken";
 const uploadVideo = asyncHandler(async (req, res) => {
   try {
     const { title, description, isPublished } = req.body;
+    console.log(req.body);
 
     const videoLocalPath = req.files?.userVideo?.[0]?.path;
 

@@ -77,8 +77,9 @@ function Signup() {
     if (formData.coverImage) {
       form.append("coverImage", formData.coverImage);
     }
+    console.log(formData);
 
-    const json = await backendCaller("/users/register", "POST", form);
+    const json = await backendCaller("/users/register", "POST", {}, form);
 
     setMessage(json?.message);
 
