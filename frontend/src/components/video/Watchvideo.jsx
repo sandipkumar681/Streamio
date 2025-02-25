@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import {
@@ -16,8 +16,10 @@ import {
   BookmarkIcon,
 } from "@heroicons/react/24/outline";
 import { backendCaller } from "../utils/backendCaller";
-import LoginContext from "../../context/Login/LoginContext";
 import ShareModal from "./ShareModal";
+import { useDispatch } from "react-redux";
+import { toggleSideBar } from "../../features/SideBarSlice";
+import { useSelector } from "react-redux";
 
 const Watchvideo = () => {
   const { id } = useParams();
@@ -32,18 +34,20 @@ const Watchvideo = () => {
   const videoRef = useRef();
   const videoSectionRef = useRef();
   const infoSectionRef = useRef();
-  const { isLoggedIn } = useContext(LoginContext);
+  const isLoggedIn = useSelector((state) => state.logInReducer.isLoggedIn);
   const navigate = useNavigate();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const videoUrl = `${import.meta.env.VITE_FRONTEND_URL}/video/watch/${
     videoInfo._id
   }`;
 
+  const dispatch = useDispatch();
+
   useEffect(() => {
     const fetchVideo = async () => {
       const json = await backendCaller(`/videos/fetchvideo/${id}`);
       setIsLoading(false);
-      console.log(json);
+      // console.log(json);
 
       if (json.success) {
         setVideoInfo(json.data);
@@ -61,6 +65,8 @@ const Watchvideo = () => {
         setMessage("Failed to fetch video!");
       }
     };
+
+    dispatch(toggleSideBar());
     fetchVideo();
     fetchVideosForHome();
   }, [id]);

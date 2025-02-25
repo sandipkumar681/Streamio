@@ -1,7 +1,7 @@
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { backendCaller } from "../utils/backendCaller";
-import LoginContext from "../../context/Login/LoginContext";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 function UploadVideo() {
   const [videoFile, setVideoFile] = useState(null);
@@ -11,7 +11,7 @@ function UploadVideo() {
   const [isPublished, setIsPublished] = useState(true);
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { isLoggedIn } = useContext(LoginContext);
+  const isLoggedIn = useSelector((state) => state.logInReducer.isLoggedIn);
   const navigate = useNavigate();
 
   const validateForm = () => {

@@ -1,7 +1,8 @@
-import React, { useContext, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { backendCaller } from "../utils/backendCaller";
-import LoginContext from "../../context/Login/LoginContext";
+import { useDispatch } from "react-redux";
+import { changeIsLoggedIn } from "../../features/LoginSlice";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -10,7 +11,8 @@ const Login = () => {
     userNameOrEmail: "",
     password: "",
   });
-  const { setIsLoggedIn, setUserDetails } = useContext(LoginContext);
+
+  const dispatch = useDispatch();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,15 +32,9 @@ const Login = () => {
     setMessage(json?.message);
 
     if (json?.success) {
-      setIsLoggedIn(true);
-      setUserDetails({
-        _id: json.data.user._id,
-        fullName: json.data.user.fullName,
-        userName: json.data.user.userName,
-        avatar: json.data.user.avatar,
-        coverImage: json.data.user.coverImage,
-        email: json.data.user.email,
-      });
+      dispatch(
+        changeIsLoggedIn({ isLoggedIn: true, userDetails: json.data.user })
+      );
       setInputData({
         userNameOrEmail: "",
         password: "",

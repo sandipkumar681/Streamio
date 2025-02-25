@@ -1,11 +1,12 @@
-import React, { useContext, useEffect, useState } from "react";
-import LoginContext from "../../context/Login/LoginContext";
+import React, { useEffect, useState } from "react";
 import { backendCaller } from "../utils/backendCaller";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { changeIsLoggedIn } from "../../features/LoginSlice";
 
 const ChangeUserDetails = () => {
-  const { userDetails, setUserDetails, checkAuth } = useContext(LoginContext);
-
+  const userDetails = useSelector((state) => state.logInReducer.userDetails);
+  const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(false);
   const [otpRequested, setOtpRequested] = useState(false);
   const navigate = useNavigate();
@@ -75,8 +76,7 @@ const ChangeUserDetails = () => {
       setFullName(json.data.fullName);
       setEmail(json.data.email);
       setOtp("");
-
-      setUserDetails(json.data);
+      dispatch(changeIsLoggedIn({ isLoggedIn: true, userDetails: json.data }));
       navigate("/account/profile");
     } else {
       console.log(

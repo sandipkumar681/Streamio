@@ -1,25 +1,22 @@
-import { useContext } from "react";
-import SidebarContext from "../../context/Sidebar/SidebarContext";
 import { MagnifyingGlassIcon, Bars3Icon } from "@heroicons/react/24/solid";
 import { Link, useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { toggleSideBar } from "../../features/SideBarSlice";
+import { changeIsLoggedIn } from "../../features/LoginSlice";
 import { backendCaller } from "./backendCaller";
-import LoginContext from "../../context/Login/LoginContext";
 
 const Navbar = () => {
-  const { isMenuOpen, setIsMenuOpen } = useContext(SidebarContext);
-  const { isLoggedIn, setIsLoggedIn, userDetails } = useContext(LoginContext);
+  const isLoggedIn = useSelector((state) => state.logInReducer.isLoggedIn);
+  const userDetails = useSelector((state) => state.logInReducer.userDetails);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleLogOut = async () => {
     const json = await backendCaller("/users/logout");
     if (json.success) {
-      setIsLoggedIn(false);
+      dispatch(changeIsLoggedIn({ isLoggedIn: false, userDetails: {} }));
       navigate("/");
     }
-  };
-
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
   };
 
   const avatar = userDetails?.avatar;
@@ -31,7 +28,9 @@ const Navbar = () => {
         <div className="flex items-center space-x-4">
           {/* Hamburger Menu (for Sidebar toggle) */}
           <button
-            onClick={toggleMenu}
+            onClick={() => {
+              dispatch(toggleSideBar());
+            }}
             className="text-white focus:outline-none md:block"
             aria-label="Toggle Menu"
           >
@@ -132,5 +131,4 @@ const Navbar = () => {
     </nav>
   );
 };
-
 export default Navbar;

@@ -1,7 +1,9 @@
 import VideoItem from "./video/Videoitem";
-import { useEffect, useState, useContext } from "react";
-import SidebarContext from "../context/Sidebar/SidebarContext";
+import { useEffect, useState } from "react";
+
 import { backendCaller } from "./utils/backendCaller";
+import { useDispatch } from "react-redux";
+import { makeSideBarOpen } from "../features/SideBarSlice";
 
 function Home() {
   const [isLoading, setIsLoading] = useState(true);
@@ -10,7 +12,7 @@ function Home() {
 
   const [message, setMessage] = useState(null);
 
-  const { setIsMenuOpen } = useContext(SidebarContext);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchVideosForHome = async () => {
@@ -23,7 +25,7 @@ function Home() {
       }
     };
 
-    setIsMenuOpen(true);
+    dispatch(makeSideBarOpen());
 
     fetchVideosForHome();
   }, []);

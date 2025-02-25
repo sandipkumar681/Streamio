@@ -1,12 +1,11 @@
-import { useEffect, useContext, useState } from "react";
+import { useEffect, useState } from "react";
 import { backendCaller } from "../utils/backendCaller";
-import LoginContext from "../../context/Login/LoginContext";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { checkAuth } from "../../features/LoginSlice";
+import { useSelector } from "react-redux";
 
 const Profile = () => {
-  const { isLoggedIn, userDetails, setUserDetails, checkAuth } =
-    useContext(LoginContext);
-  const navigate = useNavigate();
+  const userDetails = useSelector((state) => state.logInReducer.userDetails);
   const [form, setForm] = useState({});
   const [isEditAvatarOpen, setIsEditAvatarOpen] = useState(false);
   const [isEditCoverImageOpen, setIsEditCoverImageOpen] = useState(false);
@@ -14,8 +13,7 @@ const Profile = () => {
 
   useEffect(() => {
     checkAuth();
-    // console.log("Inside useEffect!");
-  }, [isLoading]);
+  }, [userDetails]);
 
   const handleChange = (e) => {
     const { files } = e.target;

@@ -20,6 +20,8 @@ import ChangeUserDetails from "./components/account/ChangeUserDetails.jsx";
 import ChangePassword from "./components/account/ChangePassword.jsx";
 import DashBoard from "./components/account/DashBoard.jsx";
 import DashBoardVideos from "./components/video/DashBoardVideos.jsx";
+import { Provider } from "react-redux";
+import { store } from "./redux-toolkit/store.js";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -48,6 +50,8 @@ const router = createBrowserRouter(
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <Provider store={store}>
+      <RouterProvider router={router} />
+    </Provider>
   </StrictMode>
 );

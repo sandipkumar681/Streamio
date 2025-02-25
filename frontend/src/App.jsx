@@ -1,34 +1,23 @@
 import { Outlet } from "react-router-dom";
 import Navbar from "./components/utils/Navbar";
-import SidebarState from "./context/Sidebar/SidebarState";
 import Sidebar from "./components/utils/Sidebar";
-import LoginState from "./context/Login/LoginState";
-import { useEffect, useContext } from "react";
-import LoginContext from "./context/Login/LoginContext";
+import { useEffect } from "react";
+import { checkAuth } from "./features/LoginSlice";
+import { useDispatch } from "react-redux";
 
 const App = () => {
-  return (
-    <LoginState>
-      <AuthenticatedApp />
-    </LoginState>
-  );
-};
-
-const AuthenticatedApp = () => {
-  const { checkAuth } = useContext(LoginContext);
-
+  const dispatch = useDispatch();
   useEffect(() => {
-    checkAuth();
-  }, []);
-
+    dispatch(checkAuth());
+  }, [dispatch]);
   return (
-    <SidebarState>
+    <>
       <Navbar />
       <div className="flex">
         <Sidebar />
         <Outlet />
       </div>
-    </SidebarState>
+    </>
   );
 };
 

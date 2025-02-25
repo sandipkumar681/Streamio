@@ -36,7 +36,7 @@ app.use("/api/v1/comments", commentRouter);
 app.use("/api/v1/likes", likeRouter);
 app.use("/api/v1/subscriptions", subscriptionRoute);
 app.use("/api/v1/playlists", playlistRoute);
-app.use("/api/v1/", healthCheckRoute);
+app.use("/api/v1", healthCheckRoute);
 app.use("/api/v1/dashboard", dashboardRoute);
 
 //route to send mail

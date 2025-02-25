@@ -1,6 +1,4 @@
 import { Link } from "react-router-dom";
-import { useContext } from "react";
-import SidebarContext from "../../context/Sidebar/SidebarContext";
 
 import {
   HomeIcon,
@@ -12,13 +10,16 @@ import {
   VideoCameraIcon,
   BookmarkIcon,
 } from "@heroicons/react/24/outline";
+import { useSelector } from "react-redux";
 
-function Sidebar() {
-  const { isMenuOpen } = useContext(SidebarContext);
+const Sidebar = () => {
+  const isSideBarOpen = useSelector(
+    (state) => state.sideBarReducer.isSideBarOpen
+  );
 
   return (
     <>
-      {isMenuOpen ? (
+      {isSideBarOpen ? (
         <aside className="w-64 bg-gray-800 text-white p-4 min-h-screen hidden md:block">
           <ul className="flex flex-col">
             <li>
@@ -138,6 +139,6 @@ function Sidebar() {
       )}
     </>
   );
-}
+};
 
 export default Sidebar;
