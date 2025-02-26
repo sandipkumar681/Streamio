@@ -18,6 +18,7 @@ const accessTokenOptions = {
   secure: process.env.SECURE === "true",
   sameSite: process.env.SAMESITE,
   maxAge: ms(process.env.ACCESS_TOKEN_EXPIRY),
+  partitioned: process.env.PARTITIONED === "true",
 };
 
 const refreshTokenOptions = {
@@ -25,6 +26,7 @@ const refreshTokenOptions = {
   secure: process.env.SECURE === "true",
   sameSite: process.env.SAMESITE,
   maxAge: ms(process.env.REFRESH_TOKEN_EXPIRY),
+  partitioned: process.env.PARTITIONED === "true",
 };
 
 const clearCookieOption = {
