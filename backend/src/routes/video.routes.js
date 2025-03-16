@@ -9,6 +9,7 @@ import {
   togglePublishStatus,
   fetchVideosForHome,
   fetchAllVideosForDashboardVideos,
+  searchVideo,
 } from "../controllers/video.controller.js";
 
 const router = Router();
@@ -37,5 +38,7 @@ router
   .get(verifyJWT, togglePublishStatus);
 
 router.route("/fetchvideosforhome").get(fetchVideosForHome);
+
+router.route("/search").get(searchVideo);
 
 export default router;

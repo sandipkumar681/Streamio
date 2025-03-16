@@ -20,6 +20,8 @@ import ShareModal from "./ShareModal";
 import { useDispatch } from "react-redux";
 import { toggleSideBar } from "../../features/SideBarSlice";
 import { useSelector } from "react-redux";
+import PlaylistModal from "./PlaylistModal";
+import { timeDifference } from "../utils/timeDifference";
 
 const Watchvideo = () => {
   const { id } = useParams();
@@ -40,6 +42,7 @@ const Watchvideo = () => {
   const videoUrl = `${import.meta.env.VITE_FRONTEND_URL}/video/watch/${
     videoInfo._id
   }`;
+  const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -196,6 +199,14 @@ const Watchvideo = () => {
         doesUserAlreadySubscribed: !prev.doesUserAlreadySubscribed,
       }));
     }
+  };
+
+  const handleSaveClick = () => {
+    if (!isLoggedIn) {
+      navigate("/account/login");
+      return;
+    }
+    setIsPlaylistModalOpen(true);
   };
 
   if (isLoading) {
@@ -386,10 +397,22 @@ const Watchvideo = () => {
                 <ArrowDownTrayIcon className="h-6 w-6 mr-2" />
                 <div>Download</div>
               </button>
-              <button className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 p-2 rounded-lg">
+
+              <button
+                onClick={handleSaveClick}
+                className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 p-2 rounded-lg"
+              >
                 <BookmarkIcon className="h-6 w-6 mr-2" />
                 <div>Save</div>
               </button>
+
+              {isPlaylistModalOpen && (
+                <PlaylistModal
+                  isOpen="true"
+                  onClose={() => setIsPlaylistModalOpen(false)}
+                  videoId={id}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -439,8 +462,7 @@ const Watchvideo = () => {
                   {video?.ownerDetails.userName}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {video.views} views •{" "}
-                  {new Date(video.createdAt).toLocaleDateString()}
+                  {video.views} views • {timeDifference(video.createdAt)}
                 </p>
               </div>
             </Link>

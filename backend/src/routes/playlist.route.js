@@ -20,9 +20,7 @@ router.route("/getuserplaylists").get(getUserPlaylists);
 
 router.route("/getplaylist/:playlistId").get(getPlaylistById);
 
-router
-  .route("/addvideotoplaylist/:playlistId&:videoId")
-  .get(addVideoToPlaylist);
+router.route("/addvideotoplaylist").post(addVideoToPlaylist);
 
 router.route("/removeplaylist/:playlistId").patch(removeVideoFromPlaylist);
 

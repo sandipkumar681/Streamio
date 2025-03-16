@@ -122,7 +122,7 @@ const deleteComment = asyncHandler(async (req, res) => {
 
     await Comment.findByIdAndDelete(req.params.commentId);
 
-    res
+    return res
       .status(200)
       .json(new apiResponse(200, {}, "Comment deleted successfully"));
   } catch (error) {

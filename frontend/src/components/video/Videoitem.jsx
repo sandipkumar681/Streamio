@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
+import { timeDifference } from "../utils/timeDifference";
 
-function VideoItem({ video }) {
+const VideoItem = ({ video }) => {
   return (
     <div className="bg-gray-700 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
       <Link to={`/video/watch/${video?._id}`} className="block">
@@ -24,13 +25,12 @@ function VideoItem({ video }) {
             {video?.ownerDetails?.userName}
           </p>
           <p className="text-gray-500 text-xs">
-            {video?.views} views •{" "}
-            {new Date(video?.createdAt).toLocaleDateString()}
+            {video?.views} views • {timeDifference(video?.createdAt)}
           </p>
         </div>
       </div>
     </div>
   );
-}
+};
 
 export default VideoItem;

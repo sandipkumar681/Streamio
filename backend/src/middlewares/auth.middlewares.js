@@ -27,10 +27,11 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     }
 
     const user = await User.findById(decodedToken._id).select(
-      "-password -refreshToken -__v -createdAt -updatedAt -watchHistory"
+      "-password -refreshToken -createdAt -updatedAt"
     );
 
     req.user = user;
+
     next();
   } catch (error) {
     throw new apiError(

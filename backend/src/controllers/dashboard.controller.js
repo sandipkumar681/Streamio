@@ -1,7 +1,4 @@
-import mongoose from "mongoose";
 import { Video } from "../models/video.model.js";
-import { Subscription } from "../models/subscription.model.js";
-import { Like } from "../models/like.model.js";
 import { apiError } from "../utils/apiError.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -22,7 +19,7 @@ const getChannelVideos = asyncHandler(async (req, res) => {
         .json(new apiResponse(400, {}, "There is no videos uploaded yet!"));
     }
 
-    res
+    return res
       .status(200)
       .json(
         new apiResponse(200, videos, "Videos fetched successfully for owner")

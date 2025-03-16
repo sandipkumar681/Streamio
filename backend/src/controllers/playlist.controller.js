@@ -1,6 +1,5 @@
 import mongoose, { isValidObjectId, Types } from "mongoose";
 import { Playlist } from "../models/playlist.model.js";
-import { apiError } from "../utils/apiError.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Video } from "../models/video.model.js";
@@ -31,7 +30,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 
   const data = await Playlist.find({ owner: userId });
 
-  res
+  return res
     .status(200)
     .json(new apiResponse(200, data, "Fetched all Playlist successfully!"));
 });
@@ -47,13 +46,31 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
   const playlist = await Playlist.findById(playlistId);
 
-  res
+  if (!playlist) {
+    return res
+      .status(400)
+      .json(new apiResponse(400, {}, "Playlist doesnot exists!"));
+  }
+
+  if (playlist.owner.toString() != req.user._id.toString()) {
+    return res
+      .status(400)
+      .json(
+        new apiResponse(
+          400,
+          {},
+          "You are not owner of this playlist. Unauthorised access!"
+        )
+      );
+  }
+
+  return res
     .status(200)
     .json(new apiResponse(200, playlist, "Playlist fetched successfully!"));
 });
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
-  const { playlistId, videoId } = req.params;
+  const { playlistId, videoId } = req.body;
 
   if (!(playlistId && videoId)) {
     return res
@@ -85,7 +102,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     { new: true, upsert: true }
   );
 
-  res
+  return res
     .status(200)
     .json(
       new apiResponse(

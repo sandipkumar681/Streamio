@@ -35,163 +35,159 @@ const clearCookieOption = {
   sameSite: process.env.SAMESITE,
 };
 
-const generateAccessAndRefreshToken = async (userId) => {
+const generateAccessAndRefreshToken = async (user) => {
   try {
-    const user = await User.findById(userId);
-
-    const newAccessToken = user.generateAccessToken();
-
-    const newRefreshToken = user.generateRefreshToken();
-
-    user.refreshToken = newRefreshToken;
+    user.refreshToken = user.generateRefreshToken();
 
     await user.save({ validateBeforeSave: false });
 
-    return { newAccessToken, newRefreshToken };
+    return {
+      newAccessToken: user.generateAccessToken(),
+      newRefreshToken: user.refreshToken,
+    };
   } catch (error) {
     throw new apiError(500, "Error while generating access and refresh token!");
   }
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  // try {
-  const { fullName, userName, email, password, otp } = req.body;
+  try {
+    const { fullName, userName, email, password, otp } = req.body;
 
-  const avatarLocalPath = req.files?.avatar?.[0]?.path;
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
 
-  //Here problem happens if coverImageLocalPath is null
-  // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    //Here problem happens if coverImageLocalPath is null
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
-  let coverImageLocalPath;
+    let coverImageLocalPath;
 
-  if (
-    req.files &&
-    Array.isArray(req.files.coverImage) &&
-    req.files.coverImage.length > 0
-  ) {
-    coverImageLocalPath = req.files?.coverImage[0]?.path;
-  }
-
-  if (!avatarLocalPath) {
-    return res
-      .status(400)
-      .json(new apiResponse(400, {}, "Avatar file is required!"));
-  }
-
-  const removeFiles = () => {
-    if (avatarLocalPath) {
-      unlinkSync(avatarLocalPath);
+    if (
+      req.files &&
+      Array.isArray(req.files.coverImage) &&
+      req.files.coverImage.length > 0
+    ) {
+      coverImageLocalPath = req.files?.coverImage[0]?.path;
     }
-    if (coverImageLocalPath) {
-      unlinkSync(coverImageLocalPath);
+
+    if (!avatarLocalPath) {
+      return res
+        .status(400)
+        .json(new apiResponse(400, {}, "Avatar file is required!"));
     }
-  };
 
-  if (
-    [fullName, userName, email, password, otp].some((field) => {
-      return field.trim() === "";
-    })
-  ) {
-    removeFiles();
+    const removeFiles = () => {
+      if (avatarLocalPath) {
+        unlinkSync(avatarLocalPath);
+      }
+      if (coverImageLocalPath) {
+        unlinkSync(coverImageLocalPath);
+      }
+    };
+
+    if (
+      [fullName, userName, email, password, otp].some((field) => {
+        return field.trim() === "";
+      })
+    ) {
+      removeFiles();
+
+      return res
+        .status(400)
+        .json(new apiResponse(400, {}, "Field can not be empty!"));
+    }
+
+    const schema = Joi.object({
+      fullName: Joi.string().min(3).max(30).required(),
+      userName: Joi.string().min(3).max(30).required(),
+      email: Joi.string().email().required(),
+      password: Joi.string().min(6).required(),
+      otp: Joi.number().required(),
+    });
+
+    const { error, value } = schema.validate(req.body);
+
+    if (error) {
+      removeFiles();
+      return res
+        .status(400)
+        .json(new apiResponse(400, {}, error.details[0].message));
+    }
+
+    const otpInDb = await Otp.findOne({ email });
+
+    if (Number(otp) !== otpInDb?.otp) {
+      removeFiles();
+      return res
+        .status(400)
+        .json(new apiResponse(400, {}, "Otp is incorrect!"));
+    }
+
+    const existedUser = await User.findOne({
+      $or: [{ userName }, { email }],
+    });
+
+    if (existedUser) {
+      removeFiles();
+
+      return res
+        .status(400)
+        .json(
+          new apiResponse(
+            400,
+            {},
+            "Email or Username is already taken. Please choose another one."
+          )
+        );
+    }
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+    const coverImage = coverImageLocalPath
+      ? await uploadOnCloudinary(coverImageLocalPath)
+      : null;
+
+    if (!avatar) {
+      removeFiles();
+
+      return res
+        .status(500)
+        .json(
+          new apiResponse(
+            500,
+            {},
+            "Avatar file upload by server is unsuccessful!"
+          )
+        );
+    }
+
+    const user = await User.create({
+      fullName,
+      avatar: avatar.url,
+      coverImage: coverImage?.url || "",
+      email,
+      password,
+      userName: userName.toLowerCase(),
+    });
+
+    const createdUser = await User.findById(user._id).select(
+      "-password -refreshToken"
+    );
 
     return res
-      .status(400)
-      .json(new apiResponse(400, {}, "Field can not be empty!"));
+      .status(201)
+      .json(new apiResponse(201, createdUser, "User registered successfully"));
+  } catch (error) {
+    throw new apiError(
+      error.statusCode || 500,
+      error.message || "Internal server error while registering User"
+    );
   }
-
-  const schema = Joi.object({
-    fullName: Joi.string().min(3).max(30).required(),
-    userName: Joi.string().min(3).max(30).required(),
-    email: Joi.string().email().required(),
-    password: Joi.string().min(6).required(),
-    otp: Joi.number().exist().required(),
-  });
-
-  const { error, value } = schema.validate(req.body);
-
-  if (error) {
-    removeFiles();
-    return res
-      .status(400)
-      .json(new apiResponse(400, {}, error.details[0].message));
-  }
-
-  const otpInDb = await Otp.findOne({ email });
-
-  if (Number(otp) !== otpInDb?.otp) {
-    removeFiles();
-    return res.status(400).json(new apiResponse(400, {}, "Otp is incorrect!"));
-  }
-
-  const existedUser = await User.findOne({
-    $or: [{ userName }, { email }],
-  });
-
-  if (existedUser) {
-    removeFiles();
-
-    return res
-      .status(400)
-      .json(
-        new apiResponse(
-          400,
-          {},
-          "Email or Username is already taken. Please choose another one."
-        )
-      );
-  }
-
-  const avatar = await uploadOnCloudinary(avatarLocalPath);
-
-  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
-
-  if (!avatar) {
-    removeFiles();
-
-    return res
-      .status(500)
-      .json(
-        new apiResponse(
-          500,
-          {},
-          "Avatar file upload by server is unsuccessful!"
-        )
-      );
-  }
-
-  const user = await User.create({
-    fullName,
-    avatar: avatar.url,
-    coverImage: coverImage?.url || "",
-    email,
-    password,
-    userName: userName.toLowerCase(),
-  });
-
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
-
-  return res
-    .status(201)
-    .json(new apiResponse(201, createdUser, "User registered successfully"));
-  // } catch (error) {
-  //   throw new apiError(
-  //     error.statusCode || 500,
-  //     error.message || "Internal server error while registering User"
-  //   );
-  // }
 });
 
 const loginUser = asyncHandler(async (req, res) => {
-  //get credintials from user like password and email
-  //check if they are correct
-  //send response accordingly
-  //give them access token and refresh token also
-
   try {
     const { userNameOrEmail, password } = req.body;
-    if (!userNameOrEmail) {
+    if (!userNameOrEmail || !password) {
       return res
         .status(400)
         .json(new apiResponse(400, {}, "Must require an username or email!"));
@@ -207,16 +203,14 @@ const loginUser = asyncHandler(async (req, res) => {
         .json(new apiResponse(404, {}, "User doesn't exist. Please signup!"));
     }
 
-    const isPasswordValid = await user.isPasswordCorrect(password);
-
-    if (!isPasswordValid) {
+    if (!(await user.isPasswordCorrect(password))) {
       return res
         .status(400)
         .json(new apiResponse(400, {}, "Password is incorrect!"));
     }
 
     const { newAccessToken, newRefreshToken } =
-      await generateAccessAndRefreshToken(user._id);
+      await generateAccessAndRefreshToken(user);
 
     const loggedInUser = await User.findById(user._id).select(
       "-password -refreshToken"
@@ -243,21 +237,17 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const logoutUser = asyncHandler(async (req, res) => {
   try {
-    await User.findByIdAndUpdate(
-      req.user._id,
-      { $unset: { refreshToken: 1 } },
-      { new: true }
-    );
+    await User.findByIdAndUpdate(req.user._id, { $unset: { refreshToken: 1 } });
 
     return res
       .status(200)
       .clearCookie("accessToken", clearCookieOption)
       .clearCookie("refreshToken", clearCookieOption)
-      .json(new apiResponse(200, {}, "Logged out successfully!"));
+      .json(new apiResponse(200, {}, "User logged out successfully!"));
   } catch (error) {
     throw new apiError(
       error.statusCode || 500,
-      error.message || "Internal server error while logging out!"
+      error.message || "Internal server error during logging out!"
     );
   }
 });
@@ -293,9 +283,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 
     const { newAccessToken, newRefreshToken } =
-      await generateAccessAndRefreshToken(user._id);
+      await generateAccessAndRefreshToken(user);
 
-    await User.findByIdAndUpdate(user._id, {
+    await user.updateOne({
       refreshToken: newRefreshToken,
     });
 
@@ -322,6 +312,16 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
 
+    if (
+      [oldPassword, newPassword].some((field) => {
+        return field.trim() === "";
+      })
+    ) {
+      return res
+        .status(400)
+        .json(new apiResponse(400, {}, "Field can not be empty!"));
+    }
+
     const schema = Joi.object({
       oldPassword: Joi.string().min(6).required(),
       newPassword: Joi.string().min(6).required(),
@@ -333,12 +333,6 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
       return res
         .status(400)
         .json(new apiResponse(400, {}, error.details[0].message));
-    }
-
-    if (newPassword.trim() === "") {
-      return res
-        .status(400)
-        .json(new apiResponse(400, {}, "New password can not be blank!"));
     }
 
     if (oldPassword === newPassword) {
@@ -365,29 +359,46 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .json(new apiResponse(200, {}, "Password changed sucessfully"));
+      .json(new apiResponse(200, {}, "Password changed successfully"));
   } catch (error) {
     throw new apiError(
       error.statusCode || 500,
-      error.message || "Internal server error when changing password"
+      error.message || "Internal server error when changing password!"
     );
   }
 });
 
 const getCurrentUserDetails = asyncHandler(async (req, res) => {
-  return res
-    .status(200)
-    .json(new apiResponse(200, req.user, "User fetched successfully!"));
+  try {
+    return res
+      .status(200)
+      .json(new apiResponse(200, req.user, "User fetched successfully!"));
+  } catch (error) {
+    throw new apiError(
+      error.statusCode || 500,
+      error.message || "Internal server error when getting user details!"
+    );
+  }
 });
 
 const changeAccountDetails = asyncHandler(async (req, res) => {
   try {
     const { email, fullName, otp } = req.body;
 
+    if (
+      [email, fullName, otp].some((field) => {
+        return field.trim();
+      }) === ""
+    ) {
+      return res
+        .status(400)
+        .json(new apiResponse(400, {}, "Field can not be blank!"));
+    }
+
     const schema = Joi.object({
       fullName: Joi.string().min(3).max(30).required(),
       email: Joi.string().email().required(),
-      otp: Joi.string().exist().required(),
+      otp: Joi.string().required(),
     });
 
     const { error, value } = schema.validate(req.body);
@@ -398,17 +409,7 @@ const changeAccountDetails = asyncHandler(async (req, res) => {
         .json(new apiResponse(400, {}, error.details[0].message));
     }
 
-    if (
-      [email, fullName, otp].some((val) => {
-        return val.trim();
-      }) === ""
-    ) {
-      return res
-        .status(400)
-        .json(new apiResponse(400, {}, "Field can not be blank!"));
-    }
-
-    const otpInDb = await Otp.findOne({ email });
+    const otpInDb = await Otp.findOne({ email: req.user.email });
 
     if (Number(otp) !== otpInDb?.otp) {
       return res
@@ -433,7 +434,7 @@ const changeAccountDetails = asyncHandler(async (req, res) => {
       req.user._id,
       { $set: { email, fullName } },
       { new: true }
-    ).select("-password -refreshToken -__v");
+    ).select("-password -refreshToken");
 
     return res
       .status(200)
@@ -472,11 +473,9 @@ const updateAvatar = asyncHandler(async (req, res) => {
       req.user._id,
       { $set: { avatar: avatar.url } },
       { new: true }
-    ).select(
-      "-password -refreshToken -__v -createdAt -updatedAt -watchHistory"
-    );
+    ).select("-password -refreshToken -createdAt -updatedAt");
 
-    res
+    return res
       .status(200)
       .json(new apiResponse(200, { user }, "Avatar updated successfully"));
   } catch (error) {
@@ -513,11 +512,9 @@ const updateCoverImage = asyncHandler(async (req, res) => {
       req.user._id,
       { $set: { coverImage: coverImage.url } },
       { new: true }
-    ).select(
-      "-password -refreshToken  -__v -createdAt -updatedAt -watchHistory"
-    );
+    ).select("-password -refreshToken -createdAt -updatedAt");
 
-    res
+    return res
       .status(200)
       .json(new apiResponse(200, { user }, "Cover image updated successfully"));
   } catch (error) {
@@ -529,234 +526,141 @@ const updateCoverImage = asyncHandler(async (req, res) => {
 });
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
-  const userName = req.user.userName;
+  try {
+    const userName = req.user.userName.toString();
 
-  const channel = await User.aggregate([
-    {
-      $match: {
-        userName,
-      },
-    },
-
-    {
-      $lookup: {
-        from: "subscriptions",
-        localField: "_id",
-        foreignField: "channel",
-        as: "subscribers",
-      },
-    },
-    {
-      $lookup: {
-        from: "videos",
-        localField: "_id",
-        foreignField: "owner",
-        as: "videos",
-        pipeline: [
-          {
-            $lookup: {
-              from: "likes",
-              localField: "_id",
-              foreignField: "video",
-              as: "likesCount",
-            },
-          },
-          {
-            $lookup: {
-              from: "comments",
-              localField: "_id",
-              foreignField: "video",
-              as: "commentsCount",
-            },
-          },
-          {
-            $addFields: {
-              likesCount: {
-                $size: "$likesCount",
-              },
-              commentsCount: {
-                $size: "$commentsCount",
-              },
-            },
-          },
-          {
-            $group: {
-              _id: null,
-              totalVideos: { $sum: 1 },
-              totalLikes: {
-                $sum: "$likesCount",
-              },
-              totalComments: {
-                $sum: "$commentsCount",
-              },
-              totalViews: { $sum: "$views" },
-            },
-          },
-        ],
-      },
-    },
-    {
-      $addFields: {
-        totalSubscribers: {
-          $size: "$subscribers",
-        },
-        channelInfo: { $first: "$videos" },
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        fullName: 1,
-        userName: 1,
-        totalSubscribers: 1,
-        channelInfo: 1,
-      },
-    },
-  ]);
-
-  if (!channel?.length) {
-    return res
-      .status(404)
-      .json(new apiResponse(404, {}, "Channel does not exists!"));
-  }
-
-  return res
-    .status(200)
-    .json(
-      new apiResponse(200, channel[0], "User channel fetched successfully")
-    );
-});
-
-const getWatchHistory = asyncHandler(async (req, res) => {
-  // https://www.youtube.com/watch?v=qNnR7cuVliI&list=PLu71SKxNbfoBGh_8p_NS-ZAh6v7HhYqHW&index=21
-  const user = await User.aggregate([
-    {
-      $match: {
-        _id: new mongoose.Types.ObjectId(req.user._id),
-      },
-    },
-    {
-      $lookup: {
-        from: "videos",
-        localField: "watchHistory",
-        foreignField: "_id",
-        as: "watchHistory",
-        pipeline: [
-          {
-            $lookup: {
-              from: "users",
-              localField: "owner",
-              foreignField: "_id",
-              as: "owner",
-              pipeline: [
-                {
-                  $project: {
-                    fullName: 1,
-                    username: 1,
-                    avatar: 1,
-                  },
-                },
-              ],
-            },
-          },
-          {
-            $addFields: {
-              owner: {
-                $first: "$owner",
-              },
-            },
-          },
-        ],
-      },
-    },
-  ]);
-
-  return res
-    .status(200)
-    .json(
-      new apiResponse(
-        200,
-        user[0].watchHistory,
-        "Watch history fetched successfully"
-      )
-    );
-});
-
-const getLikedVideos = asyncHandler(async (req, res) => {
-  const userId = req.user._id.toString();
-
-  if (!userId) {
-    return res
-      .status(400)
-      .json(new apiResponse(400, {}, "User id must required!"));
-  }
-
-  const info = await User.aggregate([
-    [
+    const channel = await User.aggregate([
       {
         $match: {
-          _id: new mongoose.Types.ObjectId(userId),
+          userName,
         },
       },
       {
         $lookup: {
-          from: "likes",
+          from: "subscriptions",
           localField: "_id",
-          foreignField: "likedBy",
-          as: "allLikedVideos",
+          foreignField: "channel",
+          as: "subscribers",
+        },
+      },
+      {
+        $lookup: {
+          from: "videos",
+          localField: "_id",
+          foreignField: "owner",
+          as: "videos",
           pipeline: [
             {
-              $match: {
-                video: {
-                  $exists: true,
-                },
-              },
-            },
-            {
-              $project: {
-                video: 1,
+              $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "video",
+                as: "likesCount",
               },
             },
             {
               $lookup: {
-                from: "videos",
-                localField: "video",
+                from: "comments",
+                localField: "_id",
+                foreignField: "video",
+                as: "commentsCount",
+              },
+            },
+            {
+              $addFields: {
+                likesCount: {
+                  $size: "$likesCount",
+                },
+                commentsCount: {
+                  $size: "$commentsCount",
+                },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                totalVideos: { $sum: 1 },
+                totalLikes: {
+                  $sum: "$likesCount",
+                },
+                totalComments: {
+                  $sum: "$commentsCount",
+                },
+                totalViews: { $sum: "$views" },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          totalSubscribers: {
+            $size: "$subscribers",
+          },
+          channelInfo: { $first: "$videos" },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          fullName: 1,
+          userName: 1,
+          totalSubscribers: 1,
+          channelInfo: 1,
+        },
+      },
+    ]);
+
+    if (!channel?.length) {
+      return res
+        .status(404)
+        .json(new apiResponse(404, {}, "Channel does not exists!"));
+    }
+
+    return res
+      .status(200)
+      .json(
+        new apiResponse(200, channel[0], "User channel fetched successfully")
+      );
+  } catch (error) {
+    throw new apiError(
+      error.statusCode || 500,
+      error.message ||
+        "Internal server error while fetching user channel details!"
+    );
+  }
+});
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+  try {
+    const user = await User.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(req.user._id),
+        },
+      },
+      {
+        $unwind: "$watchHistory",
+      },
+      {
+        $lookup: {
+          from: "videos",
+          localField: "watchHistory.videoId",
+          foreignField: "_id",
+          as: "userHistory",
+          pipeline: [
+            {
+              $lookup: {
+                from: "users",
+                localField: "owner",
                 foreignField: "_id",
-                as: "video_details",
+                as: "owner",
                 pipeline: [
                   {
                     $project: {
-                      _id: 1,
-                      thumbnail: 1,
-                      title: 1,
-                      duration: 1,
-                      views: 1,
-                      createdAt: 1,
-                      owner: 1,
-                    },
-                  },
-                  {
-                    $lookup: {
-                      from: "users",
-                      localField: "owner",
-                      foreignField: "_id",
-                      as: "owner_details",
-                      pipeline: [
-                        {
-                          $project: {
-                            _id: 1,
-                            userName: 1,
-                            avatar: 1,
-                          },
-                        },
-                      ],
-                    },
-                  },
-                  {
-                    $addFields: {
-                      owner_details: {
-                        $first: "$owner_details",
-                      },
+                      fullName: 1,
+                      userName: 1,
+                      avatar: 1,
                     },
                   },
                 ],
@@ -764,8 +668,8 @@ const getLikedVideos = asyncHandler(async (req, res) => {
             },
             {
               $addFields: {
-                video_details: {
-                  $first: "$video_details",
+                owner: {
+                  $first: "$owner",
                 },
               },
             },
@@ -773,92 +677,253 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         },
       },
       {
-        $project: {
-          _id: 1,
-          userName: 1,
-          avatar: 1,
-          coverImage: 1,
-          fullName: 1,
-          allLikedVideos: 1,
+        $addFields: {
+          userHistory: {
+            $first: "$userHistory",
+          },
         },
       },
-    ],
-  ]);
-  res.status(200).json(new apiResponse(200, info, "Fetched all videos!"));
+      {
+        $addFields: {
+          "userHistory.watchedAt": "$watchHistory.watchedAt",
+        },
+      },
+      {
+        $group: {
+          _id: "$_id",
+          userHistory: {
+            $push: "$userHistory",
+          },
+        },
+      },
+    ]);
+
+    return res
+      .status(200)
+      .json(
+        new apiResponse(
+          200,
+          user[0].userHistory,
+          "Watch history fetched successfully"
+        )
+      );
+  } catch (error) {
+    throw new apiError(
+      error.statusCode || 500,
+      error.message || "Internal server error while fetching user history!"
+    );
+  }
+});
+
+const getLikedVideos = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user._id.toString();
+
+    const info = await User.aggregate([
+      [
+        {
+          $match: {
+            _id: new mongoose.Types.ObjectId(userId),
+          },
+        },
+        {
+          $lookup: {
+            from: "likes",
+            localField: "_id",
+            foreignField: "likedBy",
+            as: "allLikedVideos",
+            pipeline: [
+              {
+                $match: {
+                  video: {
+                    $exists: true,
+                  },
+                },
+              },
+              {
+                $project: {
+                  video: 1,
+                },
+              },
+              {
+                $lookup: {
+                  from: "videos",
+                  localField: "video",
+                  foreignField: "_id",
+                  as: "video_details",
+                  pipeline: [
+                    {
+                      $project: {
+                        _id: 1,
+                        thumbnail: 1,
+                        title: 1,
+                        duration: 1,
+                        views: 1,
+                        createdAt: 1,
+                        owner: 1,
+                      },
+                    },
+                    {
+                      $lookup: {
+                        from: "users",
+                        localField: "owner",
+                        foreignField: "_id",
+                        as: "owner_details",
+                        pipeline: [
+                          {
+                            $project: {
+                              _id: 1,
+                              userName: 1,
+                              avatar: 1,
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    {
+                      $addFields: {
+                        owner_details: {
+                          $first: "$owner_details",
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                $addFields: {
+                  video_details: {
+                    $first: "$video_details",
+                  },
+                },
+              },
+            ],
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            userName: 1,
+            avatar: 1,
+            coverImage: 1,
+            fullName: 1,
+            allLikedVideos: 1,
+          },
+        },
+      ],
+    ]);
+    return res
+      .status(200)
+      .json(new apiResponse(200, info, "Fetched all videos!"));
+  } catch (error) {
+    throw new apiError(
+      error.statusCode || 500,
+      error.message || "Internal server error while fetching liked videos!"
+    );
+  }
 });
 
 const isUserExist = asyncHandler(async (req, res) => {
-  const { email } = req.body;
+  try {
+    const { email } = req.body;
 
-  if (!email) {
-    return res
-      .status(400)
-      .json(new apiResponse(400, {}, "Must Provide an email!"));
-  }
+    if (!email) {
+      return res
+        .status(400)
+        .json(new apiResponse(400, {}, "Must Provide an email!"));
+    }
 
-  const user = await User.findOne({ email });
+    const user = await User.findOne({ email });
 
-  if (!user) {
+    if (!user) {
+      return res
+        .status(200)
+        .json(new apiResponse(400, {}, "Email does not exist! Please signup."));
+    }
+
     return res
       .status(200)
-      .json(new apiResponse(400, {}, "Email does not exist! Please signup."));
+      .json(new apiResponse(200, {}, "Email exists! Sending OTP..."));
+  } catch (error) {
+    throw new apiError(
+      error.statusCode || 500,
+      error.message ||
+        "Internal server error while checking user exists or not!"
+    );
   }
-
-  return res
-    .status(200)
-    .json(new apiResponse(200, {}, "Email exists! Sending OTP..."));
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
-  const { email, otp, newPassword } = req.body;
+  try {
+    const { email, otp, newPassword } = req.body;
 
-  if (
-    [email, otp, newPassword].some((field) => {
-      return field.trim() === "";
-    })
-  ) {
-    return res.status(400, {}, "All fields are required!");
-  }
+    if (
+      [email, otp, newPassword].some((field) => {
+        return field.trim() === "";
+      })
+    ) {
+      return res.status(400, {}, "All fields are required!");
+    }
 
-  const schema = Joi.object({
-    email: Joi.string().email().required(),
-    newPassword: Joi.string().min(6).required(),
-    otp: Joi.number().exist().required(),
-  });
+    const schema = Joi.object({
+      email: Joi.string().email().required(),
+      newPassword: Joi.string().min(6).required(),
+      otp: Joi.number().exist().required(),
+    });
 
-  const { error, value } = schema.validate(req.body);
+    const { error, value } = schema.validate(req.body);
 
-  if (error) {
+    if (error) {
+      return res
+        .status(400)
+        .json(new apiResponse(400, {}, error.details[0].message));
+    }
+
+    const otpData = await Otp.findOne({ email });
+
+    if (!otpData) {
+      return res.status(
+        400,
+        {},
+        "OTP has expired! Please request another one."
+      );
+    }
+
+    if (Number(otp) !== otpData.otp) {
+      return res
+        .status(400)
+        .json(new apiResponse(400, {}, "OTP is incorrect!"));
+    }
+
+    const user = await User.findOne({ email });
+
+    user.password = newPassword;
+
+    await user.save({ validateBeforeSave: false });
+
     return res
-      .status(400)
-      .json(new apiResponse(400, {}, error.details[0].message));
+      .status(200)
+      .json(new apiResponse(200, {}, "Password updated suiccessfully!"));
+  } catch (error) {
+    throw new apiError(
+      error.statusCode || 500,
+      error.message || "Internal server error while resetting user password!"
+    );
   }
-
-  const otpData = await Otp.findOne({ email });
-
-  if (!otpData) {
-    return res.status(400, {}, "OTP has expired! Please request another one.");
-  }
-
-  if (Number(otp) !== otpData.otp) {
-    return res.status(400).json(new apiResponse(400, {}, "OTP is incorrect!"));
-  }
-
-  const user = await User.findOne({ email });
-
-  user.password = newPassword;
-
-  await user.save({ validateBeforeSave: false });
-
-  return res
-    .status(200)
-    .json(new apiResponse(200, {}, "Password updated suiccessfully!"));
 });
 
 const isUserLoggedIn = asyncHandler(async (req, res) => {
-  return res
-    .status(200)
-    .json(new apiResponse(200, req.user, "User is logged in!"));
+  try {
+    return res
+      .status(200)
+      .json(new apiResponse(200, req.user, "User is logged in!"));
+  } catch (error) {
+    throw new apiError(
+      error.statusCode || 500,
+      error.message ||
+        "Internal server error while checking user logged in or not!"
+    );
+  }
 });
 
 export {

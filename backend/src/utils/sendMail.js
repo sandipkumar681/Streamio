@@ -32,8 +32,6 @@ const sendMail = asyncHandler(async (req, res) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
 
-    // host: "smtp.gmail.com",
-
     secure: true,
 
     port: process.env.GMAIL_PORT,
@@ -48,38 +46,66 @@ const sendMail = asyncHandler(async (req, res) => {
   async function main() {
     DocumentCreaterInOtpModel();
 
+    const subject = ToCreateProfile
+      ? "Welcome to Streamio! Your OTP for Account Setup"
+      : "Streamio Security Verification - OTP for Account Update";
+
+    const textContent = ToCreateProfile
+      ? `Hello,
+
+We're thrilled to have you join Streamio! To complete your profile setup, please use the OTP below:
+
+OTP: ${otp}
+
+This OTP is valid for 15 minutes. For security reasons, please do not share it with anyone.
+
+If you did not request this, you can safely ignore this email.
+
+Best regards,  
+The Streamio Team`
+      : `Hello,
+
+We received a request to update your account details. To proceed, please use the OTP below:
+
+OTP: ${otp}
+
+This OTP is valid for 15 minutes. Do not share it with anyone.
+
+If you did not request this, you can safely ignore this email.
+
+Best regards,  
+The Streamio Team`;
+
+    const htmlContent = ToCreateProfile
+      ? `
+      <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+        <h2 style="color: #1a73e8;">Welcome to Streamio!</h2>
+        <p>We're thrilled to have you join us! To complete your profile setup, please use the OTP below:</p>
+        <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; text-align: center; font-size: 20px; font-weight: bold;">
+          <span style="color: #1a73e8;">${otp}</span>
+        </div>
+        <p style="margin-top: 15px;">This OTP is valid for <b>15 minutes</b>. For security reasons, please do not share it with anyone.</p>
+        <p>If you did not request this, you can safely ignore this email.</p>
+        <p style="margin-top: 20px;">Best regards,<br><b>The Streamio Team</b></p>
+      </div>`
+      : `
+      <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+        <h2 style="color: #1a73e8;">Security Verification for Streamio</h2>
+        <p>We received a request to update your account details. To proceed, please use the OTP below:</p>
+        <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; text-align: center; font-size: 20px; font-weight: bold;">
+          <span style="color: #1a73e8;">${otp}</span>
+        </div>
+        <p style="margin-top: 15px;">This OTP is valid for <b>15 minutes</b>. Do not share it with anyone.</p>
+        <p>If you did not request this, you can safely ignore this email.</p>
+        <p style="margin-top: 20px;">Best regards,<br><b>The Streamio Team</b></p>
+      </div>`;
+
     await transporter.sendMail({
       from: process.env.SENDER_GMAIL_ADDRESS,
       to: email,
-      subject: ToCreateProfile
-        ? "OTP To Authenticate Creating Profile In Streamio"
-        : "OTP To Authenticate Changing Password In Streamio",
-      text: ToCreateProfile
-        ? `Hello,\n\nWe’re excited to welcome you to Streamio! Here is your OTP to authenticate creating your profile:\n\nOTP : ${otp}\n\nThis OTP is valid for 15 minutes. Please do not share it with anyone.\n\nIf you didn’t request this, please ignore this email.\n\nBest regards,\nThe Streamio Team`
-        : `Hello,\n\nHere is your OTP to authenticate changing your password in Streamio:\n\nOTP : ${otp}\n\nThis OTP is valid for 15 minutes. Please do not share it with anyone.\n\nIf you didn’t request this, please ignore this email.\n\nBest regards,\nThe Streamio Team`,
-      html: ToCreateProfile
-        ? `
-          <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-            <h2 style="color: #1a73e8;">Welcome to Streamio!</h2>
-            <p>We’re excited to have you onboard. To create your profile, please use the following OTP.</p>
-            <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; text-align: center; font-size: 18px; font-weight: bold;">
-              OTP : <span style="color: #1a73e8;">${otp}</span>
-            </div>
-            <p style="margin-top: 15px;">This OTP is valid for <b>15 minutes</b>. Please do not share it with anyone.</p>
-            <p>If you didn’t request this, you can safely ignore this email.</p>
-            <p style="margin-top: 20px;">Best regards,<br><b>The Streamio Team</b></p>
-          </div>`
-        : `
-          <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-            <h2 style="color: #1a73e8;">Password Change Request</h2>
-            <p>To change your password in Streamio, please use the following OTP.</p>
-            <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; text-align: center; font-size: 18px; font-weight: bold;">
-              OTP : <span style="color: #1a73e8;">${otp}</span>
-            </div>
-            <p style="margin-top: 15px;">This OTP is valid for <b>15 minutes</b>. Please do not share it with anyone.</p>
-            <p>If you didn’t request this, you can safely ignore this email.</p>
-            <p style="margin-top: 20px;">Best regards,<br><b>The Streamio Team</b></p>
-          </div>`,
+      subject,
+      text: textContent,
+      html: htmlContent,
     });
 
     return res

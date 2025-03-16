@@ -37,7 +37,8 @@ export const loginSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(checkAuth.fulfilled, (state, action) => {
-      (state.isLoading = false), (state.isLoggedIn = true);
+      state.isLoading = false;
+      state.isLoggedIn = true;
       state.userDetails = action.payload;
     });
     builder.addCase(checkAuth.pending, (state, action) => {

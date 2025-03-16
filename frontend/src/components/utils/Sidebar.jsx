@@ -42,7 +42,7 @@ const Sidebar = () => {
             </li>
             <li>
               <Link
-                to="/history"
+                to="/account/profile/history"
                 className="hover:bg-gray-700 p-2 rounded flex items-center"
               >
                 <ClockIcon className="h-6 w-6 mr-6" />
@@ -51,7 +51,7 @@ const Sidebar = () => {
             </li>
             <li>
               <Link
-                to="/playlist"
+                to="/playlists"
                 className="hover:bg-gray-700 p-2 rounded flex items-center"
               >
                 <FolderIcon className="h-6 w-6 mr-6" />
@@ -76,9 +76,14 @@ const Sidebar = () => {
                 <span>Upload Video</span>
               </Link>
             </li>
-            <li className="hover:bg-gray-700 p-2 rounded flex items-center">
-              <VideoCameraIcon className="h-6 w-6 mr-6" />
-              <span>Subscriptions</span>
+            <li>
+              <Link
+                to="/account/profile/subscribed-channels"
+                className="hover:bg-gray-700 p-2 rounded flex items-center"
+              >
+                <VideoCameraIcon className="h-6 w-6 mr-6" />
+                <span>Subscriptions</span>
+              </Link>
             </li>
             <li className="hover:bg-gray-700 p-2 rounded flex items-center">
               <QueueListIcon className="h-6 w-6 mr-6" />

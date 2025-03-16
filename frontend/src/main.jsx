@@ -22,6 +22,10 @@ import DashBoard from "./components/account/DashBoard.jsx";
 import DashBoardVideos from "./components/video/DashBoardVideos.jsx";
 import { Provider } from "react-redux";
 import { store } from "./redux-toolkit/store.js";
+import Playlist from "./components/video/Playlist.jsx";
+import PlaylistContent from "./components/video/PlaylistContent.jsx";
+import VideoHistory from "./components/video/VideoHistory.jsx";
+import SubscribedChannels from "./components/video/SubscribedChannels.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -37,12 +41,18 @@ const router = createBrowserRouter(
           <Route path="change-user-details" element={<ChangeUserDetails />} />
           <Route path="change-password" element={<ChangePassword />} />
           <Route path="dashboard" element={<DashBoard />} />
+          <Route path="history" element={<VideoHistory />} />
+          <Route path="subscribed-channels" element={<SubscribedChannels />} />
         </Route>
       </Route>
       <Route path="video/">
         <Route path="upload-video" element={<UploadVideo />} />
         <Route path="watch/:id" element={<Watchvideo />} />
         <Route path="dashboard-videos" element={<DashBoardVideos />} />
+      </Route>
+      <Route path="playlists/">
+        <Route path="" element={<Playlist />} />
+        <Route path=":id" element={<PlaylistContent />} />
       </Route>
     </Route>
   )

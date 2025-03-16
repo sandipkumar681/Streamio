@@ -19,6 +19,8 @@ const uploadVideo = asyncHandler(async (req, res) => {
   try {
     const { title, description, isPublished } = req.body;
 
+    let { tag } = req.body;
+
     const videoLocalPath = req.files?.userVideo?.[0]?.path;
 
     const thumbnailLocalPath = req.files?.userThumbnail?.[0]?.path;
@@ -48,11 +50,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
         .json(new apiResponse(400, {}, "Please upload a thumbnail!"));
     }
 
-    if (
-      [title, description, isPublished].some((field) => {
-        return field.trim();
-      }) === ""
-    ) {
+    if ([title, description, isPublished].some((field) => !field.trim())) {
       removeFiles();
 
       return res
@@ -64,10 +62,15 @@ const uploadVideo = asyncHandler(async (req, res) => {
       title: Joi.string().min(3).max(30).required(),
       description: Joi.string().min(3).max(1000).required(),
       isPublished: Joi.string().exist().required(),
+      tag: Joi.array(),
     });
 
     const { error, value } = schema.validate(req.body);
 
+    if (Array.isArray(tag) && tag.length > 0) {
+      tag = tag.map((field) => field.toLowerCase());
+    }
+    console.log(tag);
     if (error) {
       removeFiles();
 
@@ -106,6 +109,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
       thumbnail: thumbnail.url,
       duration,
       owner: req.user._id,
+      tag,
     });
 
     return res
@@ -127,6 +131,12 @@ const fetchVideoById = asyncHandler(async (req, res) => {
       return res
         .status(400)
         .json(new apiResponse(400, {}, "Provide video id!"));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(videoId)) {
+      return res
+        .status(400)
+        .json(new apiResponse(400, {}, "Invalid video ID!"));
     }
 
     const video = await Video.aggregate([
@@ -186,6 +196,7 @@ const fetchVideoById = asyncHandler(async (req, res) => {
           views: 1,
           ownerDetails: 1,
           createdAt: 1,
+          tag: 1,
           numberOfLikes: {
             $size: "$numberOfLikesOnAVideo",
           },
@@ -199,7 +210,6 @@ const fetchVideoById = asyncHandler(async (req, res) => {
         .json(new apiResponse(404, {}, "Video does not exists!"));
     }
 
-    // const userId = "676510b5512fc5d1c5d7c390";
     let doesUserAlreadyLiked = false;
     let doesUserAlreadySubscribed = false;
 
@@ -210,9 +220,22 @@ const fetchVideoById = asyncHandler(async (req, res) => {
     if (token) {
       const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
       if (decodedToken) {
-        const user = await User.findById(decodedToken._id).select(
-          "-password -refreshToken -__v -createdAt -updatedAt -watchHistory"
+        const user = await User.findById(decodedToken._id);
+
+        const isVideoAlreadyPresentInHistory = await User.findById(
+          decodedToken._id,
+          { "watchHistory.videoId": videoId }
         );
+
+        if (isVideoAlreadyPresentInHistory) {
+          await User.findByIdAndUpdate(decodedToken._id, {
+            $pull: { watchHistory: { videoId } },
+          });
+        }
+
+        await User.findByIdAndUpdate(decodedToken._id, {
+          $push: { watchHistory: { videoId } },
+        });
 
         const userId = user._id;
 
@@ -277,7 +300,7 @@ const fetchAllVideosForUser = asyncHandler(async (req, res) => {
     }
 
     const user = await User.findOne({ userName }).select(
-      "-fullName -avatar -email -coverImage -password -watchHistory -createdAt -updatedAt -refreshToken -__v -userName"
+      "-fullName -avatar -email -coverImage -password -watchHistory -createdAt -updatedAt -refreshToken -userName"
     );
 
     if (!user) {
@@ -444,6 +467,37 @@ const fetchVideosForHome = asyncHandler(async (req, res) => {
     .json(new apiResponse(200, videos, "Videos fetched successfully"));
 });
 
+const searchVideo = asyncHandler(async (req, res) => {
+  const { query } = req.query;
+
+  if (!query) {
+    return res
+      .status(400)
+      .json(new apiResponse(400, {}, "Search query is required!"));
+  }
+
+  const videos = await Video.find({
+    $and: [
+      { isPublished: true },
+      {
+        $or: [
+          { title: { $regex: query, $options: "i" } },
+          { description: { $regex: query, $options: "i" } },
+          { tag: { $in: [new RegExp(query, "i")] } },
+        ],
+      },
+    ],
+  });
+
+  if (videos.length === 0) {
+    return res.status(404).json(new apiResponse(404, {}, "No videos found!"));
+  }
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, videos, "Videos fetched similar to query!"));
+});
+
 export {
   uploadVideo,
   fetchVideoById,
@@ -452,4 +506,5 @@ export {
   deleteVideo,
   togglePublishStatus,
   fetchVideosForHome,
+  searchVideo,
 };

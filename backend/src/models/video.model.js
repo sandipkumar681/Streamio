@@ -14,6 +14,7 @@ const videoSchema = new mongoose.Schema(
     title: {
       type: String,
       require: true,
+      index: true,
     },
     description: {
       type: String,
@@ -26,6 +27,7 @@ const videoSchema = new mongoose.Schema(
     views: {
       type: Number,
       default: 0,
+      min: 0,
     },
     isPublished: {
       type: Boolean,
@@ -35,6 +37,12 @@ const videoSchema = new mongoose.Schema(
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      index: true,
+    },
+    tag: {
+      type: [String],
+      default: [],
+      index: true,
     },
   },
   { timestamps: true }
