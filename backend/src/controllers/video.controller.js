@@ -70,7 +70,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
     if (Array.isArray(tag) && tag.length > 0) {
       tag = tag.map((field) => field.toLowerCase());
     }
-    console.log(tag);
+
     if (error) {
       removeFiles();
 
@@ -299,21 +299,47 @@ const fetchAllVideosForUser = asyncHandler(async (req, res) => {
         .json(new apiResponse(400, {}, "Must require an username!"));
     }
 
-    const user = await User.findOne({ userName }).select(
-      "-fullName -avatar -email -coverImage -password -watchHistory -createdAt -updatedAt -refreshToken -userName"
-    );
+    const owner = await User.aggregate([
+      {
+        $match: {
+          userName,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          userName: 1,
+          fullName: 1,
+          coverImage: 1,
+          avatar: 1,
+        },
+      },
+      {
+        $lookup: {
+          from: "subscriptions",
+          localField: "_id",
+          foreignField: "channel",
+          as: "subscribers",
+        },
+      },
+      {
+        $addFields: {
+          subscribers: { $size: "$subscribers" },
+        },
+      },
+    ]);
 
-    if (!user) {
+    if (!owner[0]) {
       return res
         .status(400)
         .json(new apiResponse(404, {}, "Username does not exist!"));
     }
 
     const videos = await Video.find({
-      $and: [{ owner: user._id.toString() }, { isPublished: true }],
+      $and: [{ owner: owner[0]._id.toString() }, { isPublished: true }],
     });
 
-    if (!videos.length) {
+    if (videos.length <= 0) {
       return res
         .status(400)
         .json(new apiResponse(400, {}, "There is no videos uploaded yet!"));
@@ -322,7 +348,11 @@ const fetchAllVideosForUser = asyncHandler(async (req, res) => {
     return res
       .status(200)
       .json(
-        new apiResponse(200, videos, "Videos fetched successfully for user")
+        new apiResponse(
+          200,
+          { channel: owner[0], videos },
+          "Videos fetched successfully for user!"
+        )
       );
   } catch (error) {
     throw new apiError(
@@ -476,18 +506,51 @@ const searchVideo = asyncHandler(async (req, res) => {
       .json(new apiResponse(400, {}, "Search query is required!"));
   }
 
-  const videos = await Video.find({
-    $and: [
-      { isPublished: true },
-      {
+  const videos = await Video.aggregate([
+    {
+      $match: {
+        isPublished: true,
         $or: [
-          { title: { $regex: query, $options: "i" } },
-          { description: { $regex: query, $options: "i" } },
-          { tag: { $in: [new RegExp(query, "i")] } },
+          {
+            title: {
+              $regex: query,
+              $options: "i",
+            },
+          },
+          {
+            description: {
+              $regex: query,
+              $options: "i",
+            },
+          },
+          { tag: { $elemMatch: { $regex: query, $options: "i" } } },
         ],
       },
-    ],
-  });
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              avatar: 1,
+              fullName: 1,
+              userName: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        owner: { $first: "$owner" },
+      },
+    },
+  ]);
 
   if (videos.length === 0) {
     return res.status(404).json(new apiResponse(404, {}, "No videos found!"));
@@ -501,7 +564,7 @@ const searchVideo = asyncHandler(async (req, res) => {
 export {
   uploadVideo,
   fetchVideoById,
-  fetchAllVideosForUser,
+  fetchAllVideosForUser, //Not optimised yet
   fetchAllVideosForDashboardVideos,
   deleteVideo,
   togglePublishStatus,

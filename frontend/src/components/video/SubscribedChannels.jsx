@@ -38,16 +38,6 @@ const SubscribedChannels = () => {
       if (response.success) {
         setSubscribed((prev) => (prev = !prev));
       }
-
-      //   if (response.success) {
-      //     setChannels((prev) =>
-      //       prev.map((channel) =>
-      //         channel._id === channelId
-      //           ? { ...channel, isSubscribed: !isSubscribed }
-      //           : channel
-      //       )
-      //     );
-      //   }
     } catch (err) {
       console.error("Subscription error:", err);
     }
@@ -78,7 +68,7 @@ const SubscribedChannels = () => {
           >
             {/* Left Section: Avatar */}
             <Link
-              to={`/channel/${channel._id}`}
+              to={`/channel-info/${channel.userName}`}
               className="flex items-center gap-4"
             >
               <img

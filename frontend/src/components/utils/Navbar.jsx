@@ -4,12 +4,15 @@ import { useSelector, useDispatch } from "react-redux";
 import { toggleSideBar } from "../../features/SideBarSlice";
 import { changeIsLoggedIn } from "../../features/LoginSlice";
 import { backendCaller } from "./backendCaller";
+import { useState } from "react";
 
 const Navbar = () => {
   const isLoggedIn = useSelector((state) => state.logInReducer.isLoggedIn);
   const userDetails = useSelector((state) => state.logInReducer.userDetails);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchBarInput, setSearchBarInput] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
 
   const handleLogOut = async () => {
     const json = await backendCaller("/users/logout");
@@ -17,6 +20,14 @@ const Navbar = () => {
       dispatch(changeIsLoggedIn({ isLoggedIn: false, userDetails: {} }));
       navigate("/");
     }
+  };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+
+    if (!searchBarInput.trim()) return;
+
+    navigate(`/search?query=${searchBarInput}`);
   };
 
   const avatar = userDetails?.avatar;
@@ -56,10 +67,15 @@ const Navbar = () => {
             <input
               type="text"
               placeholder="Search"
+              value={searchBarInput}
               className="bg-gray-800 text-gray-300 px-4 py-2 rounded-l-lg focus:outline-none w-full text-sm"
               aria-label="Search"
+              onChange={(e) => {
+                setSearchBarInput((prev) => (prev = e.target.value));
+              }}
             />
             <button
+              onClick={handleSearch}
               type="submit"
               className="bg-red-600 px-4 py-2 rounded-r-lg hover:bg-red-500 transition-colors text-white"
               aria-label="Search Button"

@@ -26,6 +26,8 @@ import Playlist from "./components/video/Playlist.jsx";
 import PlaylistContent from "./components/video/PlaylistContent.jsx";
 import VideoHistory from "./components/video/VideoHistory.jsx";
 import SubscribedChannels from "./components/video/SubscribedChannels.jsx";
+import SearchResults from "./components/pages/SearchResults.jsx";
+import ChannelInfo from "./components/pages/ChannelInfo.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -54,6 +56,8 @@ const router = createBrowserRouter(
         <Route path="" element={<Playlist />} />
         <Route path=":id" element={<PlaylistContent />} />
       </Route>
+      <Route path="search/" element={<SearchResults />} />
+      <Route path="channel-info/:userName" element={<ChannelInfo />} />
     </Route>
   )
 );
