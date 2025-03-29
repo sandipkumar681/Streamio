@@ -1,8 +1,9 @@
-import mongoose, { isValidObjectId } from "mongoose";
+import mongoose from "mongoose";
 import { Like } from "../models/like.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import { Video } from "../models/video.model.js";
+import { Comment } from "../models/comment.model.js";
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
@@ -11,6 +12,10 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     return res
       .status(400)
       .json(new apiResponse(400, {}, "Video id must required!"));
+  }
+
+  if (!mongoose.isValidObjectId(videoId)) {
+    return res.status(400).json(new apiResponse(400, {}, "Invalid video ID"));
   }
 
   const isVideoPresent = await Video.findById(videoId);
@@ -52,7 +57,11 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
       .json(new apiResponse(400, {}, "Comment id must required!"));
   }
 
-  const isCommentPresent = await Video.findById(commentId);
+  if (!mongoose.isValidObjectId(commentId)) {
+    return res.status(400).json(new apiResponse(400, {}, "Invalid comment ID"));
+  }
+
+  const isCommentPresent = await Comment.findById(commentId);
 
   if (!isCommentPresent) {
     return res
@@ -77,14 +86,9 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     await Like.deleteOne({ _id: likeId });
   }
 
-  res
+  return res
     .status(200)
-    .json(new apiResponse(200, {}, "Comment like toggled successfully"));
+    .json(new apiResponse(200, {}, "Comment like toggled successfully!"));
 });
 
-const toggleTweetLike = asyncHandler(async (req, res) => {
-  const { tweetId } = req.params;
-  //TODO: toggle like on tweet
-});
-
-export { toggleCommentLike, toggleTweetLike, toggleVideoLike };
+export { toggleCommentLike, toggleVideoLike };

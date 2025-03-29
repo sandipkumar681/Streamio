@@ -9,7 +9,6 @@ import {
   changeAccountDetails,
   updateAvatar,
   updateCoverImage,
-  getUserChannelProfile,
   getWatchHistory,
   getLikedVideos,
   isUserExist,
@@ -37,7 +36,7 @@ router.route("/logout").get(verifyJWT, logoutUser);
 
 router.route("/refresh-tokens").get(refreshAccessToken);
 
-router.route("/change-password").patch( changeCurrentPassword);
+router.route("/change-password").patch(changeCurrentPassword);
 
 router.route("/user-details").get(verifyJWT, getCurrentUserDetails);
 
@@ -50,8 +49,6 @@ router
 router
   .route("/change-coverImage")
   .patch(verifyJWT, upload.single("coverImage"), updateCoverImage);
-
-router.route("/dashboard").get(verifyJWT, getUserChannelProfile);
 
 router.route("/history").get(verifyJWT, getWatchHistory);
 

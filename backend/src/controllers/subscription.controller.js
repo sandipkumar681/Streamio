@@ -5,7 +5,6 @@ import { apiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 const toggleSubscription = asyncHandler(async (req, res) => {
   const { channelId } = req.params;
-  // TODO: toggle subscription
 
   if (!channelId) {
     return res
@@ -43,7 +42,6 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     .json(new apiResponse(200, {}, "subscription toggled successfully"));
 });
 
-// controller to return subscriber list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
   const { channelId } = req.params;
 
@@ -64,7 +62,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
       new apiResponse(201, subscribers, "Subscribers fetched successfully!")
     );
 });
-// controller to return channel list to which user has subscribed
+
 const getSubscribedChannels = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
@@ -85,7 +83,6 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
               as: "subscriberCount",
             },
           },
-
           {
             $addFields: {
               subscriberCount: {
@@ -98,7 +95,6 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
               _id: 1,
               userName: 1,
               avatar: 1,
-              coverImage: 1,
               fullName: 1,
               subscriberCount: 1,
             },
@@ -106,23 +102,24 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
         ],
       },
     },
-    { $project: { _id: 0, channel: 1 } },
+    {
+      $addFields: {
+        channel: {
+          $first: "$channel",
+        },
+      },
+    },
+    { $project: { _id: 1, channel: 1 } },
   ]);
 
   if (channels.length === 0) {
     return res
-      .status(200)
-      .json(new apiResponse(200, {}, "Not subscribed to a chhanel yet!"));
+      .status(400)
+      .json(new apiResponse(400, {}, "Not subscribed to a chhanel yet!"));
   }
 
   return res
     .status(200)
-    .json(
-      new apiResponse(
-        200,
-        channels[0]?.channel,
-        "Channels fetched successfully!"
-      )
-    );
+    .json(new apiResponse(200, channels, "Channels fetched successfully!"));
 });
 export { toggleSubscription, getUserChannelSubscribers, getSubscribedChannels };

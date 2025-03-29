@@ -409,7 +409,7 @@ const changeAccountDetails = asyncHandler(async (req, res) => {
         .json(new apiResponse(400, {}, error.details[0].message));
     }
 
-    const otpInDb = await Otp.findOne({ email: req.user.email });
+    const otpInDb = await Otp.findOne({ email });
 
     if (Number(otp) !== otpInDb?.otp) {
       return res
@@ -521,112 +521,6 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     throw new apiError(
       error.statusCode || 500,
       error.message || "Internal server error while changing user details"
-    );
-  }
-});
-
-const getUserChannelProfile = asyncHandler(async (req, res) => {
-  try {
-    const userName = req.user.userName.toString();
-
-    const channel = await User.aggregate([
-      {
-        $match: {
-          userName,
-        },
-      },
-      {
-        $lookup: {
-          from: "subscriptions",
-          localField: "_id",
-          foreignField: "channel",
-          as: "subscribers",
-        },
-      },
-      {
-        $lookup: {
-          from: "videos",
-          localField: "_id",
-          foreignField: "owner",
-          as: "videos",
-          pipeline: [
-            {
-              $lookup: {
-                from: "likes",
-                localField: "_id",
-                foreignField: "video",
-                as: "likesCount",
-              },
-            },
-            {
-              $lookup: {
-                from: "comments",
-                localField: "_id",
-                foreignField: "video",
-                as: "commentsCount",
-              },
-            },
-            {
-              $addFields: {
-                likesCount: {
-                  $size: "$likesCount",
-                },
-                commentsCount: {
-                  $size: "$commentsCount",
-                },
-              },
-            },
-            {
-              $group: {
-                _id: null,
-                totalVideos: { $sum: 1 },
-                totalLikes: {
-                  $sum: "$likesCount",
-                },
-                totalComments: {
-                  $sum: "$commentsCount",
-                },
-                totalViews: { $sum: "$views" },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: {
-          totalSubscribers: {
-            $size: "$subscribers",
-          },
-          channelInfo: { $first: "$videos" },
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          fullName: 1,
-          userName: 1,
-          totalSubscribers: 1,
-          channelInfo: 1,
-        },
-      },
-    ]);
-
-    if (!channel?.length) {
-      return res
-        .status(404)
-        .json(new apiResponse(404, {}, "Channel does not exists!"));
-    }
-
-    return res
-      .status(200)
-      .json(
-        new apiResponse(200, channel[0], "User channel fetched successfully")
-      );
-  } catch (error) {
-    throw new apiError(
-      error.statusCode || 500,
-      error.message ||
-        "Internal server error while fetching user channel details!"
     );
   }
 });
@@ -936,7 +830,6 @@ export {
   changeAccountDetails,
   updateAvatar,
   updateCoverImage,
-  getUserChannelProfile,
   getWatchHistory,
   getLikedVideos,
   isUserExist,

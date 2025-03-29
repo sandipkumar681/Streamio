@@ -58,11 +58,15 @@ const uploadVideo = asyncHandler(async (req, res) => {
         .json(new apiResponse(400, {}, "Field can not be blank!"));
     }
 
+    if (tag && typeof tag === "string") {
+      tag = tag.split(",").map((tag) => tag.trim());
+    }
+
     const schema = Joi.object({
       title: Joi.string().min(3).max(30).required(),
       description: Joi.string().min(3).max(1000).required(),
-      isPublished: Joi.string().exist().required(),
-      tag: Joi.array(),
+      isPublished: Joi.boolean().required(),
+      tag: Joi.optional(),
     });
 
     const { error, value } = schema.validate(req.body);
@@ -133,7 +137,7 @@ const fetchVideoById = asyncHandler(async (req, res) => {
         .json(new apiResponse(400, {}, "Provide video id!"));
     }
 
-    if (!mongoose.Types.ObjectId.isValid(videoId)) {
+    if (!mongoose.isValidObjectId(videoId)) {
       return res
         .status(400)
         .json(new apiResponse(400, {}, "Invalid video ID!"));
