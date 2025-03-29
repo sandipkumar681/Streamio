@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import {
   PlayIcon,
@@ -17,13 +17,17 @@ import {
 } from "@heroicons/react/24/outline";
 import { backendCaller } from "../utils/backendCaller";
 import ShareModal from "./ShareModal";
-import { useDispatch } from "react-redux";
-import { toggleSideBar } from "../../features/SideBarSlice";
 import { useSelector } from "react-redux";
 import PlaylistModal from "./PlaylistModal";
 import { timeDifference } from "../utils/timeDifference";
+import ShowTime from "../utils/ShowTime";
+import CommentsList from "../pages/commentList";
+import VideoDescription from "./videoDescription";
 
 const Watchvideo = () => {
+  // let rendered = useRef(0);
+  // rendered.current += 1;
+  // console.log("Renders in watchVideos: ", rendered);
   const { id } = useParams();
   const [videoInfo, setVideoInfo] = useState({});
   const [relatedVideos, setRelatedVideos] = useState([]);
@@ -33,46 +37,56 @@ const Watchvideo = () => {
   const [currentDuration, setCurrentDuration] = useState(0);
   const [isMaximised, setIsMaximised] = useState(false);
   const [timeOutId, setTimeOutId] = useState(0);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
+
   const videoRef = useRef();
   const videoSectionRef = useRef();
   const infoSectionRef = useRef();
   const isLoggedIn = useSelector((state) => state.logInReducer.isLoggedIn);
   const navigate = useNavigate();
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const location = useLocation();
+
   const videoUrl = `${import.meta.env.VITE_FRONTEND_URL}/video/watch/${
     videoInfo._id
   }`;
-  const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
 
-  const dispatch = useDispatch();
+  const fetchVideo = useCallback(async () => {
+    try {
+      const response = await backendCaller(`/videos/fetchvideo/${id}`);
+
+      if (response.success) {
+        setVideoInfo(response.data);
+      } else {
+        setMessage(response?.message || "Failed to fetch video!");
+      }
+    } catch (error) {
+      setMessage("An error occured while fetching a video!");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id]);
+
+  const fetchRelatedVideos = useCallback(async () => {
+    try {
+      const response = await backendCaller("/videos/fetchvideosforhome");
+      setIsLoading(false);
+      if (response.success) {
+        setRelatedVideos(response.data);
+      } else {
+        setMessage(response?.message || "Failed to fetch related video!");
+      }
+    } catch (error) {
+      setMessage("An error occured while fetching related video!");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    const fetchVideo = async () => {
-      const json = await backendCaller(`/videos/fetchvideo/${id}`);
-      setIsLoading(false);
-      // console.log(json);
-
-      if (json.success) {
-        setVideoInfo(json.data);
-      } else {
-        setMessage("Failed to fetch video");
-      }
-    };
-
-    const fetchVideosForHome = async () => {
-      const json = await backendCaller("/videos/fetchvideosforhome");
-      setIsLoading(false);
-      if (json.success) {
-        setRelatedVideos(json.data);
-      } else {
-        setMessage("Failed to fetch video!");
-      }
-    };
-
-    dispatch(toggleSideBar());
     fetchVideo();
-    fetchVideosForHome();
-  }, [id]);
+    fetchRelatedVideos();
+  }, [fetchVideo, fetchRelatedVideos]);
 
   const maximiseWindow = () => {
     if (videoSectionRef.current.requestFullscreen) {
@@ -151,6 +165,7 @@ const Watchvideo = () => {
       });
     }
   };
+
   const handleOnTimeUpdate = () => {
     if (videoRef.current.currentTime >= videoInfo.duration) {
       setIsVideoPlaying(false);
@@ -158,42 +173,44 @@ const Watchvideo = () => {
     setCurrentDuration(videoRef.current.currentTime);
   };
 
-  const secondsToHours = (duration) => {
-    if (Math.floor(duration / 3600)) {
-      return 0;
+  const checkIsLogedIn = () => {
+    if (!isLoggedIn) {
+      navigate(
+        `/account/login?redirect=${encodeURIComponent(location.pathname)}`
+      );
+      return;
     }
-    return Math.floor(duration / 3600);
-  };
-  const secondsToMinutes = (duration) => {
-    return Math.floor(duration / 60);
-  };
-
-  const secondsToRemainderSeconds = (duration) => {
-    return Math.floor(duration % 60);
   };
 
   const handleLikeToggle = async () => {
-    if (!isLoggedIn) {
-      navigate("/account/login");
-      return;
-    }
-    const json = await backendCaller(`/likes/togglevideolike/videoId=${id}`);
-    console.log(json);
-    if (json.success) {
-    } else {
+    checkIsLogedIn();
+    const response = await backendCaller(`/likes/togglevideolike/${id}`);
+
+    if (response.success) {
+      setVideoInfo((prev) => {
+        if (prev.doesUserAlreadyLiked) {
+          return {
+            ...prev,
+            doesUserAlreadyLiked: !prev.doesUserAlreadyLiked,
+            numberOfLikes: prev.numberOfLikes - 1,
+          };
+        }
+        return {
+          ...prev,
+          doesUserAlreadyLiked: !prev.doesUserAlreadyLiked,
+          numberOfLikes: prev.numberOfLikes + 1,
+        };
+      });
     }
   };
 
   const handleSubscriptionToggle = async () => {
-    if (!isLoggedIn) {
-      navigate("/account/login");
-      return;
-    }
-    const json = await backendCaller(
+    checkIsLogedIn();
+    const response = await backendCaller(
       `/subscriptions/togglesubscription/channelId=${videoInfo?.ownerDetails?._id}`
     );
 
-    if (json.success) {
+    if (response.success) {
       setVideoInfo((prev) => ({
         ...prev,
         doesUserAlreadySubscribed: !prev.doesUserAlreadySubscribed,
@@ -202,16 +219,45 @@ const Watchvideo = () => {
   };
 
   const handleSaveClick = () => {
-    if (!isLoggedIn) {
-      navigate("/account/login");
-      return;
-    }
+    checkIsLogedIn();
     setIsPlaylistModalOpen(true);
+  };
+
+  const handleKeyDownOnPage = (e) => {
+    if (e.key === "Escape") {
+      if (isShareModalOpen || isPlaylistModalOpen) {
+        setIsShareModalOpen(false);
+        setIsPlaylistModalOpen(false);
+      }
+    }
+  };
+
+  const handleKeyDownOnVideo = (e) => {
+    if (e.key === "f") {
+      handleToggleMaximise();
+    } else if (e.key === "ArrowLeft") {
+      handleBackwardPlay();
+    } else if (e.key === "ArrowRight") {
+      handleForwardPlay();
+    } else if (e.key === " ") {
+      e.preventDefault();
+      handlePlayAndPause();
+    } else {
+      console.log(e.key);
+    }
+  };
+
+  const handleDownload = () => {
+    const link = document.createElement("a");
+    link.href = videoInfo.videoFile;
+    link.target = "_blank";
+    link.download = "video.mp4";
+    link.click();
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen text-white">
+      <div className="flex items-center justify-center w-full h-screen text-white">
         Loading...
       </div>
     );
@@ -219,7 +265,7 @@ const Watchvideo = () => {
 
   if (message) {
     return (
-      <div className="flex items-center justify-center h-screen text-white">
+      <div className="flex items-center justify-center h-screen w-full text-white">
         {message}
       </div>
     );
@@ -230,18 +276,7 @@ const Watchvideo = () => {
       {/* Video Section */}
       <div
         className="w-full lg:w-2/3 mx-auto my-4"
-        onKeyDown={(e) => {
-          if (e.key === "f") {
-            handleToggleMaximise();
-          } else if (e.key === "ArrowLeft") {
-            handleBackwardPlay();
-          } else if (e.key === "ArrowRight") {
-            handleForwardPlay();
-          } else if (e.key === " ") {
-            e.preventDefault();
-            handlePlayAndPause();
-          }
-        }}
+        onKeyDown={handleKeyDownOnPage}
       >
         <div
           ref={videoSectionRef}
@@ -258,12 +293,15 @@ const Watchvideo = () => {
               ref={videoRef}
               src={videoInfo.videoFile}
               poster={videoInfo.thumbnail}
+              onKeyDown={handleKeyDownOnVideo}
               className="absolute top-0 left-0 w-full h-full object-contain bg-black"
             ></video>
           </div>
 
           <div
-            className="absolute bottom-0 left-0 w-full px-4 py-2"
+            className={
+              !isMaximised ? `absolute bottom-0 left-0 w-full px-4 py-2` : `` //add infosection in maximised mode
+            }
             ref={infoSectionRef}
           >
             <input
@@ -292,33 +330,10 @@ const Watchvideo = () => {
                 <button onClick={handleForwardPlay}>
                   <ForwardIcon className="h-8 w-8 m-1 text-gray-300" />
                 </button>
-                <button
-                  disabled
-                  className="text-gray-400 mx-3 my-1 text-center"
-                >
-                  {secondsToHours(currentDuration)
-                    ? secondsToHours(currentDuration)
-                    : ""}
-                  {secondsToHours(currentDuration) ? ":" : ""}
-                  {secondsToMinutes(currentDuration)}
-                  {":"}
-                  {String(secondsToRemainderSeconds(currentDuration)).length ===
-                  1
-                    ? "0"
-                    : ""}
-                  {secondsToRemainderSeconds(currentDuration)} {" / "}
-                  {secondsToHours(videoInfo.duration)
-                    ? secondsToHours(videoInfo.duration)
-                    : ""}
-                  {secondsToHours(videoInfo.duration) ? ":" : ""}
-                  {secondsToMinutes(videoInfo.duration)}
-                  {":"}
-                  {String(secondsToRemainderSeconds(videoInfo.duration))
-                    .length === 1
-                    ? "0"
-                    : ""}
-                  {secondsToRemainderSeconds(videoInfo.duration)}
-                </button>
+                <ShowTime
+                  duration={videoInfo.duration}
+                  currentDuration={currentDuration}
+                />
               </div>
               <div>
                 {!isMaximised ? (
@@ -343,72 +358,74 @@ const Watchvideo = () => {
           </h1>
 
           {/* Channel Info Section */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-4 mb-4">
             {/* Start: Channel Info */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
               <img
                 src={videoInfo?.ownerDetails?.avatar}
                 alt="Channel Logo"
                 className="w-10 h-10 rounded-full"
               />
-              <p className="text-white text-xl font-medium">
+              <p className="text-white text-base sm:text-lg font-medium">
                 {videoInfo?.ownerDetails?.fullName}
               </p>
-              {videoInfo.doesUserAlreadySubscribed ? (
-                <button
-                  onClick={handleSubscriptionToggle}
-                  className="px-4 py-1 bg-gray-700 text-white text-lg rounded-md hover:bg-gray-600"
-                >
-                  Unsubscribe
-                </button>
-              ) : (
-                <button
-                  onClick={handleSubscriptionToggle}
-                  className="px-4 py-1 bg-red-600 text-white text-lg rounded-md hover:bg-red-500"
-                >
-                  Subscribe
-                </button>
-              )}
+              <button
+                onClick={handleSubscriptionToggle}
+                className={`px-3 sm:px-4 py-1 text-white text-sm sm:text-lg rounded-md transition ${
+                  videoInfo.doesUserAlreadySubscribed
+                    ? "bg-gray-700 hover:bg-gray-600"
+                    : "bg-red-600 hover:bg-red-500"
+                }`}
+              >
+                {videoInfo.doesUserAlreadySubscribed
+                  ? "Unsubscribe"
+                  : "Subscribe"}
+              </button>
             </div>
 
             {/* End: Action Buttons */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap justify-center sm:justify-start gap-3">
               <button
                 onClick={handleLikeToggle}
-                className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 p-2 rounded-lg"
+                className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 px-3 py-1 sm:p-2 rounded-lg"
               >
-                <HandThumbUpIcon className="h-6 w-6 mr-2" />{" "}
+                <HandThumbUpIcon className="h-5 w-5 sm:h-6 sm:w-6 mr-1 sm:mr-2" />
                 <div>{videoInfo.numberOfLikes}</div>
               </button>
+
               <button
                 onClick={() => setIsShareModalOpen(true)}
-                className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 p-2 rounded-lg"
+                className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 px-3 py-1 sm:p-2 rounded-lg"
               >
-                <ShareIcon className="h-6 w-6 mr-2" />
+                <ShareIcon className="h-5 w-5 sm:h-6 sm:w-6 mr-1 sm:mr-2" />
                 <div>Share</div>
               </button>
+
               <ShareModal
                 videoUrl={videoUrl}
                 isOpen={isShareModalOpen}
                 onClose={() => setIsShareModalOpen(false)}
               />
 
-              <button className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 p-2 rounded-lg">
-                <ArrowDownTrayIcon className="h-6 w-6 mr-2" />
+              <button
+                onClick={handleDownload}
+                className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 px-3 py-1 sm:p-2 rounded-lg"
+              >
+                <ArrowDownTrayIcon className="h-5 w-5 sm:h-6 sm:w-6 mr-1 sm:mr-2" />
                 <div>Download</div>
               </button>
 
               <button
                 onClick={handleSaveClick}
-                className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 p-2 rounded-lg"
+                className="text-gray-300 hover:text-white bg-gray-700 flex items-center border-2 px-3 py-1 sm:p-2 rounded-lg"
               >
-                <BookmarkIcon className="h-6 w-6 mr-2" />
+                <BookmarkIcon className="h-5 w-5 sm:h-6 sm:w-6 mr-1 sm:mr-2" />
                 <div>Save</div>
               </button>
 
               {isPlaylistModalOpen && (
                 <PlaylistModal
-                  isOpen="true"
+                  isOpen={true}
                   onClose={() => setIsPlaylistModalOpen(false)}
                   videoId={id}
                 />
@@ -417,16 +434,16 @@ const Watchvideo = () => {
           </div>
         </div>
 
+        <VideoDescription
+          description={videoInfo.description}
+          views={videoInfo.views}
+          uploadDate={videoInfo.createdAt}
+          tags={videoInfo.tag}
+        />
+
         {/* Comment Section */}
         <div className="p-4 bg-gray-800 rounded-lg">
-          <h3 className="text-lg font-semibold text-white mb-4">Comments</h3>
-          <textarea
-            placeholder="Add a comment..."
-            className="w-full p-3 rounded-lg bg-gray-700 text-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          ></textarea>
-          <button className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500">
-            Post Comment
-          </button>
+          <CommentsList videoId={videoInfo._id} />
         </div>
       </div>
 

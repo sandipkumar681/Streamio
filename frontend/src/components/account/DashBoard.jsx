@@ -1,72 +1,101 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { backendCaller } from "../utils/backendCaller";
+import { Link } from "react-router-dom";
 
-const DashBoardVideos = () => {
-  const [videos, setVideos] = useState([]);
+const Dashboard = () => {
+  const [channelData, setChannelData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchVideos = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const json = await backendCaller("/videos/fetchvideo-dashboardvideos");
-        console.log("API Response:", json);
-        if (json.success) {
-          setVideos(json.data);
+        const response = await backendCaller("/dashboard/stats");
+
+        if (response.success) {
+          setChannelData(response.data);
         } else {
-          setError("Failed to fetch videos. Please try again.");
+          setError("Failed to fetch dashboard data");
         }
       } catch (err) {
-        console.error("Error fetching videos:", err);
-        setError("An error occurred while fetching videos.");
+        setError("Error fetching data");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchVideos();
+    fetchDashboardData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen text-white">
-        Loading...
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="text-red-500 text-center">{error}</div>;
-  }
+  if (loading)
+    return <div className="text-white text-center mt-10">Loading...</div>;
+  if (error)
+    return <div className="text-red-500 text-center mt-10">{error}</div>;
 
   return (
-    <div className="p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-black w-full min-h-screen text-white">
-      <h1 className="text-3xl font-extrabold mb-8 text-center">
-        Your Uploaded Videos
-      </h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-        {videos.length > 0 ? (
-          videos.map((video) => (
-            <div
-              key={video._id}
-              className="p-6 bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
-            >
-              <img
-                src={video.thumbnailUrl}
-                alt={video.title}
-                className="w-full h-40 object-cover rounded"
-              />
-              <h2 className="text-lg font-semibold mt-2">{video.title}</h2>
-              <p className="text-sm text-gray-400">Views: {video.views}</p>
-              <p className="text-sm text-gray-400">Likes: {video.likes}</p>
-            </div>
-          ))
-        ) : (
-          <p className="text-center text-gray-400">No videos found.</p>
-        )}
+    <div className="min-h-screen bg-gray-900 text-white p-6 w-full">
+      <h2 className="text-3xl font-bold mb-6 text-center">Channel Dashboard</h2>
+
+      <div className="max-w-3xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
+        {/* User Details */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center">
+            <span className="text-lg font-bold">
+              {channelData.userName[0].toUpperCase()}
+            </span>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold">{channelData.fullName}</h3>
+            <p className="text-gray-400">@{channelData.userName}</p>
+          </div>
+        </div>
+
+        {/* Subscriber Count */}
+        <div className="bg-gray-700 p-4 rounded-lg text-center mb-6">
+          <p className="text-lg font-semibold">Subscribers</p>
+          <p className="text-2xl font-bold">{channelData.totalSubscribers}</p>
+        </div>
+
+        {/* Channel Stats */}
+        <div className="grid grid-cols-2 gap-4">
+          <StatCard
+            label="Total Videos"
+            value={channelData.channelInfo.totalVideos}
+          />
+          <StatCard
+            label="Total Likes"
+            value={channelData.channelInfo.totalLikes}
+          />
+          <StatCard
+            label="Total Comments"
+            value={channelData.channelInfo.totalComments}
+          />
+          <StatCard
+            label="Total Views"
+            value={channelData.channelInfo.totalViews}
+          />
+        </div>
+      </div>
+
+      {/* View All Videos Button */}
+      <div className="text-center">
+        <Link
+          to={`/dashboard/videos`}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+        >
+          View All Videos
+        </Link>
       </div>
     </div>
   );
 };
 
-export default DashBoardVideos;
+// Reusable Card Component for Stats
+const StatCard = ({ label, value }) => (
+  <div className="bg-gray-700 p-4 rounded-lg text-center">
+    <p className="text-lg font-semibold">{label}</p>
+    <p className="text-2xl font-bold">{value}</p>
+  </div>
+);
+
+export default Dashboard;

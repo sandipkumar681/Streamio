@@ -51,6 +51,6 @@ export const loginSlice = createSlice({
   },
 });
 
-export const { changeIsLoggedIn, logout } = loginSlice.actions;
+export const { changeIsLoggedIn } = loginSlice.actions;
 
 export default loginSlice.reducer;

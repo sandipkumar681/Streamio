@@ -152,7 +152,7 @@ const Profile = () => {
             </button>
           </Link>
           <Link
-            to="/account/profile/dashboard"
+            to="/dashboard"
             className="bg-gray-800 shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow"
           >
             <h2 className="text-lg font-semibold mb-2 text-white">

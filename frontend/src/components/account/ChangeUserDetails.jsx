@@ -7,55 +7,50 @@ import { changeIsLoggedIn } from "../../features/LoginSlice";
 const ChangeUserDetails = () => {
   const userDetails = useSelector((state) => state.logInReducer.userDetails);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [otpRequested, setOtpRequested] = useState(false);
-  const navigate = useNavigate();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
+  const [message, setMessage] = useState(null);
+  const [fullName, setFullName] = useState(""); // Ensure initial state is an empty string
+  const [email, setEmail] = useState(""); // Ensure initial state is an empty string
+  const [otp, setOtp] = useState(""); // Ensure initial state is an empty string
 
-  // Initialize `data` when `userDetails` changes
+  // Set initial user details on component mount
   useEffect(() => {
     if (userDetails) {
-      const updateField = () => {
-        setFullName(userDetails.fullName);
-        setEmail(userDetails.email);
-      };
-
-      updateField();
+      setFullName(userDetails.fullName || ""); // Ensure fallback to empty string
+      setEmail(userDetails.email || ""); // Ensure fallback to empty string
     }
   }, [userDetails]);
 
-  const handleChangeInFullName = (e) => {
-    setFullName(e.target.value);
-  };
-
-  const handleChangeInEmail = (e) => {
-    setEmail(e.target.value);
-  };
-
-  const handleChangeInOtp = (e) => {
-    setOtp(e.target.value);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "fullName") setFullName(value);
+    if (name === "email") setEmail(value);
+    if (name === "otp") setOtp(value);
   };
 
   const handleRequestOtp = async () => {
     setIsLoading(true);
-    const json = await backendCaller(
-      "/sendemail",
-      "POST",
-      { "Content-Type": "application/json" },
-      {
-        ToCreateProfile: false,
-        email,
+    try {
+      const response = await backendCaller(
+        "/sendemail",
+        "POST",
+        { "Content-Type": "application/json" },
+        { ToCreateProfile: false, email }
+      );
+      if (response.success) {
+        setOtpRequested(true);
+        setMessage("OTP has been sent to your email.");
+      } else {
+        setMessage(
+          response?.message || "Failed to request OTP. Please try again."
+        );
       }
-    );
-    setIsLoading(false);
-
-    if (json.success) {
-      setOtpRequested(true);
-      console.log("OTP has been sent to your email.");
-    } else {
-      console.log("Failed to request OTP. Please try again.");
+    } catch (error) {
+      setMessage("Error occurred while requesting OTP.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -63,25 +58,35 @@ const ChangeUserDetails = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const json = await backendCaller(
-      "/users/change-details",
-      "PATCH",
-      { "Content-Type": "application/json" },
-      { fullName, email, otp }
-    );
-
-    setIsLoading(false);
-
-    if (json.success) {
-      setFullName(json.data.fullName);
-      setEmail(json.data.email);
-      setOtp("");
-      dispatch(changeIsLoggedIn({ isLoggedIn: true, userDetails: json.data }));
-      navigate("/account/profile");
-    } else {
-      console.log(
-        "Failed to update details. Please ensure the OTP is correct."
+    try {
+      const response = await backendCaller(
+        "/users/change-details",
+        "PATCH",
+        { "Content-Type": "application/json" },
+        { fullName, email, otp }
       );
+
+      setIsLoading(false);
+
+      if (response.success) {
+        dispatch(
+          changeIsLoggedIn({
+            isLoggedIn: true,
+            userDetails: response.data || {},
+          })
+        );
+
+        // setFullName(response.data.fullName || "");
+        // setEmail(response.data.email || "");
+        setOtp("");
+      } else {
+        setMessage(
+          "Failed to update details. Please ensure the OTP is correct."
+        );
+      }
+    } catch (error) {
+      setIsLoading(false);
+      setMessage("Error occurred while updating details.");
     }
   };
 
@@ -97,6 +102,14 @@ const ChangeUserDetails = () => {
     <div className="p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-screen w-full text-white flex justify-center">
       <div className="w-full max-w-4xl space-y-6">
         <h1 className="text-3xl font-bold text-center">Update Your Details</h1>
+
+        {/* Display message to the user */}
+        {message && (
+          <div className="text-center text-lg font-semibold text-red-500 mb-4">
+            {message}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Fullname Field */}
           <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
@@ -110,8 +123,8 @@ const ChangeUserDetails = () => {
               type="text"
               id="fullName"
               name="fullName"
-              value={fullName}
-              onChange={handleChangeInFullName}
+              value={fullName} // Make sure it's always a string
+              onChange={handleInputChange}
               placeholder="Enter your full name"
               className="w-full px-4 py-2 rounded-lg bg-gray-700 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -129,8 +142,8 @@ const ChangeUserDetails = () => {
               type="email"
               id="email"
               name="email"
-              value={email}
-              onChange={handleChangeInEmail}
+              value={email} // Make sure it's always a string
+              onChange={handleInputChange}
               placeholder="Enter your email"
               className="w-full px-4 py-2 rounded-lg bg-gray-700 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -148,8 +161,8 @@ const ChangeUserDetails = () => {
               type="text"
               id="otp"
               name="otp"
-              value={otp}
-              onChange={handleChangeInOtp}
+              value={otp} // Make sure it's always a string
+              onChange={handleInputChange}
               placeholder="Enter the OTP sent to your email"
               className="w-full px-4 py-2 rounded-lg bg-gray-700 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={!otpRequested}

@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { backendCaller } from "../utils/backendCaller";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { timeDifference } from "../utils/timeDifference";
+import { useSelector } from "react-redux";
 
 const VideoHistory = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const isLoggedIn = useSelector((state) => state.logInReducer.isLoggedIn);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -25,6 +29,17 @@ const VideoHistory = () => {
     };
 
     fetchHistory();
+
+    const checkIsLogedIn = () => {
+      if (!isLoggedIn) {
+        navigate(
+          `/account/login?redirect=${encodeURIComponent(location.pathname)}`
+        );
+        return;
+      }
+    };
+
+    checkIsLogedIn();
   }, []);
 
   if (loading)

@@ -42,7 +42,7 @@ const router = createBrowserRouter(
           <Route path="" element={<Profile />} />
           <Route path="change-user-details" element={<ChangeUserDetails />} />
           <Route path="change-password" element={<ChangePassword />} />
-          <Route path="dashboard" element={<DashBoard />} />
+
           <Route path="history" element={<VideoHistory />} />
           <Route path="subscribed-channels" element={<SubscribedChannels />} />
         </Route>
@@ -50,7 +50,10 @@ const router = createBrowserRouter(
       <Route path="video/">
         <Route path="upload-video" element={<UploadVideo />} />
         <Route path="watch/:id" element={<Watchvideo />} />
-        <Route path="dashboard-videos" element={<DashBoardVideos />} />
+      </Route>
+      <Route path="dashboard">
+        <Route path="" element={<DashBoard />} />
+        <Route path="videos" element={<DashBoardVideos />} />
       </Route>
       <Route path="playlists/">
         <Route path="" element={<Playlist />} />

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { backendCaller } from "../utils/backendCaller";
 import { useDispatch } from "react-redux";
 import { changeIsLoggedIn } from "../../features/LoginSlice";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [message, setMessage] = useState("");
   const [inputData, setInputData] = useState({
     userNameOrEmail: "",
@@ -13,6 +14,8 @@ const Login = () => {
   });
 
   const dispatch = useDispatch();
+  const params = new URLSearchParams(location.search);
+  const redirectPath = params.get("redirect") || "/";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -40,7 +43,7 @@ const Login = () => {
         password: "",
       });
       setTimeout(() => {
-        navigate("/");
+        navigate(redirectPath);
       }, 1000);
     }
   };

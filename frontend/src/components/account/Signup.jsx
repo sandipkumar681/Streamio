@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-
 import { useNavigate, Link } from "react-router-dom";
 import { backendCaller } from "../utils/backendCaller";
 
@@ -77,7 +76,6 @@ function Signup() {
     if (formData.coverImage) {
       form.append("coverImage", formData.coverImage);
     }
-    console.log(formData);
 
     const json = await backendCaller("/users/register", "POST", {}, form);
 
@@ -117,7 +115,7 @@ function Signup() {
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
           {/* Username */}
-          <div>
+          <div className="w-full">
             <label htmlFor="userName" className="block text-gray-300">
               Username
             </label>
@@ -133,7 +131,7 @@ function Signup() {
             />
           </div>
           {/* Full Name */}
-          <div>
+          <div className="w-full">
             <label htmlFor="fullName" className="block text-gray-300">
               Full Name
             </label>
@@ -149,7 +147,7 @@ function Signup() {
             />
           </div>
           {/* Email */}
-          <div>
+          <div className="w-full">
             <label htmlFor="email" className="block text-gray-300">
               Email
             </label>
@@ -165,7 +163,7 @@ function Signup() {
             />
           </div>
           {/* Password */}
-          <div>
+          <div className="w-full">
             <label htmlFor="password" className="block text-gray-300">
               Password
             </label>
@@ -181,7 +179,7 @@ function Signup() {
             />
           </div>
           {/* Request OTP */}
-          <div>
+          <div className="w-full">
             <button
               type="button"
               onClick={handleOtpRequest}
@@ -193,7 +191,7 @@ function Signup() {
             <p className="text-sm text-yellow-400 mt-2">{otpMessage || ""}</p>
           </div>
           {/* OTP */}
-          <div>
+          <div className="w-full">
             <label htmlFor="otp" className="block text-gray-300">
               OTP
             </label>
@@ -210,36 +208,52 @@ function Signup() {
             />
           </div>
 
-          {/* Avatar */}
-          <div>
-            <label htmlFor="avatar" className="block text-gray-300">
-              Avatar
+          {/* Avatar File Input */}
+          <div className="w-full mb-4 flex flex-col">
+            <label
+              htmlFor="avatar"
+              className="custom-file-upload cursor-pointer border border-gray-300 inline-block px-4 py-2 text-gray-700 bg-white rounded hover:bg-gray-100 transition"
+            >
+              Choose Avatar
             </label>
             <input
               type="file"
               name="avatar"
               id="avatar"
               accept="image/*"
+              className="hidden"
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-teal-500 "
               required
+              disabled={!isOtpSent}
             />
+            {formData.avatar && (
+              <p className="text-gray-400 mt-2">{formData.avatar.name}</p>
+            )}
           </div>
-          {/* Cover Image */}
-          <div>
-            <label htmlFor="coverImage" className="block text-gray-300">
-              Cover Image (Optional)
+
+          {/* Cover Image File Input */}
+          <div className="w-full mb-4 flex flex-col">
+            <label
+              htmlFor="coverImage"
+              className="custom-file-upload cursor-pointer border border-gray-300 inline-block px-4 py-2 text-gray-700 bg-white rounded hover:bg-gray-100 transition"
+            >
+              Choose Cover Image (Optional)
             </label>
             <input
               type="file"
               name="coverImage"
               id="coverImage"
               accept="image/*"
+              className="hidden"
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 "
+              disabled={!isOtpSent}
             />
+            {formData.coverImage && (
+              <p className="text-gray-400 mt-2">{formData.coverImage.name}</p>
+            )}
           </div>
-          <div className="col-span-2">
+
+          <div className="w-full">
             <button
               type="submit"
               className="w-full py-2 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded  focus:outline-none focus:ring-2 focus:ring-teal-500 "

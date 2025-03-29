@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { backendCaller } from "../utils/backendCaller";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const SubscribedChannels = () => {
   const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [subscribed, setSubscribed] = useState(true);
+  const [message, setMessage] = useState(null);
+  const isLoggedIn = useSelector((state) => state.logInReducer.isLoggedIn);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const fetchSubscribedChannels = async () => {
@@ -14,41 +17,73 @@ const SubscribedChannels = () => {
         const response = await backendCaller(
           `/subscriptions/getsubscribedChannels`
         );
+
         if (response.success) {
-          setChannels(response.data);
+          setChannels(
+            response.data.map((channel) => ({
+              ...channel,
+              isSubscribed: true,
+            }))
+          );
         } else {
-          setError(response.message || "Failed to fetch subscribed channels");
+          setMessage(response.message || "Failed to fetch subscribed channels");
         }
-      } catch (err) {
-        setError("Error fetching subscriptions");
+      } catch (error) {
+        setMessage("Error while fetching subscribed channels!");
       } finally {
         setLoading(false);
       }
     };
 
     fetchSubscribedChannels();
+
+    const checkIsLogedIn = () => {
+      if (!isLoggedIn) {
+        navigate(
+          `/account/login?redirect=${encodeURIComponent(location.pathname)}`
+        );
+        return;
+      }
+    };
+
+    checkIsLogedIn;
   }, []);
 
-  // Subscription toggle handler
   const handleSubscription = async (channelId) => {
     try {
       const response = await backendCaller(
         `/subscriptions/togglesubscription/channelId=${channelId}`
       );
       if (response.success) {
-        setSubscribed((prev) => (prev = !prev));
+        const toggleChannelSubscribe = channels.find(
+          (channel) => channel.channel._id === channelId
+        );
+        if (toggleChannelSubscribe) {
+          toggleChannelSubscribe.isSubscribed =
+            !toggleChannelSubscribe.isSubscribed;
+
+          setChannels((prev) => [
+            ...channels.filter((channel) => channel.channel._id !== channelId),
+            toggleChannelSubscribe,
+          ]);
+        }
       }
-    } catch (err) {
+    } catch (error) {
       console.error("Subscription error:", err);
     }
   };
-
+  console.log("After: ", channels);
   if (loading)
-    return <div className="text-white text-center mt-10">Loading...</div>;
-  if (error)
     return (
-      <div className="min-h-screen bg-gray-900 text-red-500 text-center pt-10">
-        {error}
+      <div className="min-h-screen w-full bg-gray-900 text-red-500 text-center pt-10  mt-10">
+        Loading...
+      </div>
+    );
+
+  if (message)
+    return (
+      <div className="min-h-screen w-full bg-gray-900 text-white text-center pt-10">
+        {message}
       </div>
     );
 
@@ -58,7 +93,7 @@ const SubscribedChannels = () => {
 
       {channels.length === 0 ? (
         <p className="text-center text-gray-400">
-          You haven’t subscribed to any channels yet.
+          You haven’t subscribed to any channels yet!.
         </p>
       ) : (
         channels.map((channel) => (
@@ -68,20 +103,23 @@ const SubscribedChannels = () => {
           >
             {/* Left Section: Avatar */}
             <Link
-              to={`/channel-info/${channel.userName}`}
+              to={`/channel-info/${channel.channel.userName}`}
               className="flex items-center gap-4"
             >
               <img
-                src={channel.avatar}
-                alt={channel.userName}
+                src={channel.channel.avatar}
+                alt={channel.channel.userName}
                 className="w-12 h-12 rounded-full border border-gray-600"
               />
 
               {/* Middle Section: Full Name & Username */}
               <div>
-                <h3 className="text-lg font-semibold">{channel.fullName}</h3>
+                <h3 className="text-lg font-semibold">
+                  {channel.channel.fullName}
+                </h3>
                 <p className="text-gray-400 text-sm">
-                  @{channel.userName} . {channel.subscriberCount} subscribers
+                  @{channel.channel.userName} .{" "}
+                  {channel.channel.subscriberCount} subscribers
                 </p>
               </div>
             </Link>
@@ -93,7 +131,7 @@ const SubscribedChannels = () => {
                   ? "bg-red-600 hover:bg-red-700"
                   : "bg-blue-600 hover:bg-blue-700"
               }`}
-              onClick={() => handleSubscription(channel._id)}
+              onClick={() => handleSubscription(channel.channel._id)}
             >
               {channel.isSubscribed ? "Unsubscribe" : "Subscribe"}
             </button>

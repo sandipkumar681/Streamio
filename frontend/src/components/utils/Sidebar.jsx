@@ -4,11 +4,9 @@ import {
   HomeIcon,
   UserIcon,
   ClockIcon,
-  QueueListIcon,
   FolderIcon,
   FireIcon,
   VideoCameraIcon,
-  BookmarkIcon,
 } from "@heroicons/react/24/outline";
 import { useSelector } from "react-redux";
 
@@ -20,7 +18,11 @@ const Sidebar = () => {
   return (
     <>
       {isSideBarOpen ? (
-        <aside className="w-64 bg-gray-800 text-white p-4 min-h-screen hidden md:block">
+        <aside
+          className={`w-64 bg-gray-800 text-white p-4 min-h-screen ${
+            isSideBarOpen ? "block" : "hidden"
+          } md:block`}
+        >
           <ul className="flex flex-col">
             <li>
               <Link
@@ -60,15 +62,6 @@ const Sidebar = () => {
             </li>
             <li>
               <Link
-                to="/watch-later"
-                className="hover:bg-gray-700 p-2 rounded flex items-center"
-              >
-                <BookmarkIcon className="h-6 w-6 mr-6" />
-                <span>Watch Later</span>
-              </Link>
-            </li>
-            <li>
-              <Link
                 to="/video/upload-video"
                 className="hover:bg-gray-700 p-2 rounded flex items-center"
               >
@@ -84,10 +77,6 @@ const Sidebar = () => {
                 <VideoCameraIcon className="h-6 w-6 mr-6" />
                 <span>Subscriptions</span>
               </Link>
-            </li>
-            <li className="hover:bg-gray-700 p-2 rounded flex items-center">
-              <QueueListIcon className="h-6 w-6 mr-6" />
-              <span>Library</span>
             </li>
           </ul>
         </aside>

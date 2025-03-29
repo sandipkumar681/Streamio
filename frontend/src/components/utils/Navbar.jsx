@@ -34,7 +34,7 @@ const Navbar = () => {
 
   return (
     <nav className="bg-gray-900 text-white px-2 py-4 shadow-lg">
-      <div className="flex items-center justify-between  mx-auto">
+      <div className="flex items-center justify-between mx-auto">
         {/* Left Section: Hamburger & Logo */}
         <div className="flex items-center space-x-4">
           {/* Hamburger Menu (for Sidebar toggle) */}
@@ -42,7 +42,7 @@ const Navbar = () => {
             onClick={() => {
               dispatch(toggleSideBar());
             }}
-            className="text-white focus:outline-none md:block"
+            className="text-white focus:outline-none block"
             aria-label="Toggle Menu"
           >
             <Bars3Icon className="h-7 w-7 hover:text-gray-400 transition" />
@@ -71,7 +71,7 @@ const Navbar = () => {
               className="bg-gray-800 text-gray-300 px-4 py-2 rounded-l-lg focus:outline-none w-full text-sm"
               aria-label="Search"
               onChange={(e) => {
-                setSearchBarInput((prev) => (prev = e.target.value));
+                setSearchBarInput(e.target.value);
               }}
             />
             <button
@@ -134,11 +134,15 @@ const Navbar = () => {
             placeholder="Search"
             className="bg-gray-800 text-gray-300 px-4 py-2 rounded-l-lg focus:outline-none w-full text-sm"
             aria-label="Search"
+            onChange={(e) => {
+              setSearchBarInput(e.target.value);
+            }}
           />
           <button
             type="submit"
             className="bg-red-600 px-4 py-2 rounded-r-lg hover:bg-red-500 transition-colors text-white"
             aria-label="Search Button"
+            onClick={handleSearch}
           >
             <MagnifyingGlassIcon className="h-5 w-5" />
           </button>
@@ -147,4 +151,5 @@ const Navbar = () => {
     </nav>
   );
 };
+
 export default Navbar;

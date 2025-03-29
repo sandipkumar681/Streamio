@@ -1,21 +1,25 @@
 import { useEffect, useState } from "react";
 import { backendCaller } from "../utils/backendCaller";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 function UploadVideo() {
   const [videoFile, setVideoFile] = useState(null);
+  const [videoFileName, setVideoFileName] = useState("");
   const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailFileName, setThumbnailFileName] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [tags, setTags] = useState("");
   const [isPublished, setIsPublished] = useState(true);
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isLoggedIn = useSelector((state) => state.logInReducer.isLoggedIn);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const validateForm = () => {
-    if (!videoFile || !thumbnailFile || !title || !description) {
+    if (!videoFile || !thumbnailFile || !title || !description || !tags) {
       setMessage("All fields are required!");
       return false;
     }
@@ -44,6 +48,7 @@ function UploadVideo() {
     e.preventDefault();
 
     if (!validateForm()) return;
+    const tag = tags.split(",").map((tag) => tag.trim());
 
     const formData = new FormData();
     formData.append("userVideo", videoFile);
@@ -51,6 +56,7 @@ function UploadVideo() {
     formData.append("title", title);
     formData.append("description", description);
     formData.append("isPublished", isPublished);
+    formData.append("tag", tag);
 
     try {
       setIsSubmitting(true);
@@ -63,15 +69,17 @@ function UploadVideo() {
         formData
       );
 
-      console.log(json);
       setIsSubmitting(false);
       setMessage(json.message || "Upload successful!");
 
       if (json.success) {
         setVideoFile(null);
+        setVideoFileName(""); // Reset video file name
         setThumbnailFile(null);
+        setThumbnailFileName(""); // Reset thumbnail file name
         setTitle("");
         setDescription("");
+        setTags("");
         setIsPublished(false);
       }
     } catch (error) {
@@ -82,10 +90,17 @@ function UploadVideo() {
   };
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      navigate("/account/login");
-    }
-  });
+    const checkIsLogedIn = () => {
+      if (!isLoggedIn) {
+        navigate(
+          `/account/login?redirect=${encodeURIComponent(location.pathname)}`
+        );
+        return;
+      }
+    };
+
+    checkIsLogedIn();
+  }, [isLoggedIn, navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen w-full bg-gradient-to-br from-gray-900 via-gray-800 to-black">
@@ -105,40 +120,57 @@ function UploadVideo() {
         )}
 
         <form onSubmit={handleVideoUpload} className="space-y-4">
-          <div>
+          {/* Video File Input */}
+          <div className="text-gray-400 mb-4 flex items-center space-x-4">
             <label
               htmlFor="video"
-              className="block mb-2 text-gray-300 font-medium"
+              className="custom-file-upload cursor-pointer border border-gray-300 inline-block px-4 py-2 text-gray-700 bg-white rounded hover:bg-gray-100 transition"
             >
-              Video File
+              Choose Video File
             </label>
             <input
               type="file"
               id="video"
               accept="video/*"
-              onChange={(e) => setVideoFile(e.target.files[0])}
+              className="hidden"
+              onChange={(e) => {
+                setVideoFile(e.target.files[0]);
+                setVideoFileName(e.target.files[0].name);
+              }}
               disabled={isSubmitting}
-              className="block w-full px-4 py-2 border rounded-md text-gray-200 bg-gray-900"
             />
+            {videoFileName && (
+              <p className="text-gray-400 mt-2">{videoFileName}</p>
+            )}{" "}
+            {/* Show selected file name */}
           </div>
 
-          <div>
+          {/* Thumbnail File Input */}
+          <div className="text-gray-400 mb-4 flex items-center space-x-4">
             <label
               htmlFor="thumbnail"
-              className="block mb-2 text-gray-300 font-medium"
+              className="custom-file-upload cursor-pointer border border-gray-300 inline-block px-4 py-2 text-gray-700 bg-white rounded hover:bg-gray-100 transition"
             >
-              Thumbnail Image
+              Choose Thumbnail
             </label>
             <input
               type="file"
               id="thumbnail"
               accept="image/*"
-              onChange={(e) => setThumbnailFile(e.target.files[0])}
+              className="hidden"
+              onChange={(e) => {
+                setThumbnailFile(e.target.files[0]);
+                setThumbnailFileName(e.target.files[0].name); // Set thumbnail file name
+              }}
               disabled={isSubmitting}
-              className="block w-full px-4 py-2 border rounded-md text-gray-200 bg-gray-900"
             />
+            {thumbnailFileName && (
+              <p className="text-gray-400 mt-2">{thumbnailFileName}</p>
+            )}{" "}
+            {/* Show selected file name */}
           </div>
 
+          {/* Title Input */}
           <div>
             <label
               htmlFor="title"
@@ -159,6 +191,7 @@ function UploadVideo() {
             />
           </div>
 
+          {/* Description Input */}
           <div>
             <label
               htmlFor="description"
@@ -179,6 +212,29 @@ function UploadVideo() {
             />
           </div>
 
+          {/* Tags Input */}
+          <div>
+            <label
+              htmlFor="tags"
+              className="block mb-2 font-medium text-gray-300"
+            >
+              Tags (comma separated)
+            </label>
+            <input
+              type="text"
+              id="tags"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="e.g., tutorial, programming, javascript"
+              disabled={isSubmitting}
+              className="block w-full px-4 py-2 border rounded-md text-black bg-gray-200"
+            />
+            <p className="text-sm text-gray-400 mt-1">
+              Separate tags with commas (e.g., coding, JavaScript, tutorial).
+            </p>
+          </div>
+
+          {/* Publish Checkbox */}
           <div className="flex items-center space-x-4">
             <label htmlFor="isPublished" className="font-medium text-gray-300">
               Publish Now?
@@ -193,6 +249,7 @@ function UploadVideo() {
             />
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={isSubmitting}

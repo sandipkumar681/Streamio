@@ -17,13 +17,18 @@ const PlaylistModal = ({ isOpen, onClose, videoId }) => {
 
   const fetchPlaylists = async () => {
     setIsLoading(true);
-    const response = await backendCaller("/playlists/getUserPlaylists");
-    setIsLoading(false);
+    try {
+      const response = await backendCaller("/playlists/getUserPlaylists");
 
-    if (response.success) {
-      setPlaylists(response.data);
-    } else {
-      setError("Failed to fetch playlists");
+      if (response.success) {
+        setPlaylists(response.data);
+      } else {
+        setError(response?.message || "Failed to fetch playlists!");
+      }
+    } catch (error) {
+      setError("Error occured while fetching playlists!");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -108,7 +113,7 @@ const PlaylistModal = ({ isOpen, onClose, videoId }) => {
           />
           <input
             type="text"
-            placeholder="Description (optional)"
+            placeholder="Description"
             value={newPlaylistDescription}
             onChange={(e) => setNewPlaylistDescription(e.target.value)}
             className="w-full p-2 mt-2 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"

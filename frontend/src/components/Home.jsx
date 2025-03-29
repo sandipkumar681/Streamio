@@ -1,38 +1,41 @@
 import VideoItem from "./video/Videoitem";
-import { useEffect, useState } from "react";
-
+import { useCallback, useEffect, useRef, useState } from "react";
 import { backendCaller } from "./utils/backendCaller";
 import { useDispatch } from "react-redux";
-import { makeSideBarOpen } from "../features/SideBarSlice";
+import { makeSideBarClose } from "../features/SideBarSlice";
 
 function Home() {
   const [isLoading, setIsLoading] = useState(true);
-
   const [video, setVideo] = useState([]);
-
   const [message, setMessage] = useState(null);
-
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    const fetchVideosForHome = async () => {
-      const json = await backendCaller("/videos/fetchvideosforhome");
-      if (json.success) {
-        setVideo(json.data);
-        setIsLoading(false);
+  const fetchVideosForHome = useCallback(async () => {
+    try {
+      const response = await backendCaller("/videos/fetchvideosforhome");
+      if (response.success) {
+        setVideo(response.data);
       } else {
-        setMessage("Failed to fetch video!");
+        setMessage(response?.message || "Failed to fetch video!");
       }
-    };
+    } catch (error) {
+      setMessage("An error occured while fetching video for home!");
+    } finally {
+      setIsLoading(false);
+    }
+  });
 
-    dispatch(makeSideBarOpen());
-
+  useEffect(() => {
     fetchVideosForHome();
+
+    return () => {
+      dispatch(makeSideBarClose());
+    };
   }, []);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen text-white">
+      <div className="flex items-center justify-center h-screen w-full text-white bg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-screen">
         Loading...
       </div>
     );
@@ -40,8 +43,16 @@ function Home() {
 
   if (message) {
     return (
-      <div className="flex items-center justify-center h-screen text-white">
+      <div className="flex items-center justify-center h-screen w-full text-whitebg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-screen">
         {message}
+      </div>
+    );
+  }
+
+  if (video.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen w-full bg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-screen text-white">
+        No videos yet!
       </div>
     );
   }
