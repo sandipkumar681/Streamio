@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { User } from "../models/user.model.js";
 import { Video } from "../models/video.model.js";
 import { apiError } from "../utils/apiError.js";
@@ -5,8 +6,6 @@ import { apiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const getChannelStats = asyncHandler(async (req, res) => {
-  // TODO: Get the channel stats like total video views, total subscribers, total videos, total likes etc.
-
   try {
     const userName = req.user.userName.toString();
 
@@ -113,10 +112,70 @@ const getChannelStats = asyncHandler(async (req, res) => {
 });
 
 const getChannelVideos = asyncHandler(async (req, res) => {
-  // TODO: Get all the videos uploaded by the channel
-
   try {
-    const videos = await Video.find({ owner: req.user._id });
+    const videos = await Video.aggregate([
+      {
+        $match: {
+          owner: new mongoose.Types.ObjectId(req.user._id),
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "owner",
+          foreignField: "_id",
+          as: "owner",
+          pipeline: [
+            {
+              $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers",
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                userName: 1,
+                avatar: 1,
+                coverImage: 1,
+                fullName: 1,
+                subscribers: 1,
+              },
+            },
+            {
+              $addFields: {
+                subscribers: { $size: "$subscribers" },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "comments",
+          localField: "_id",
+          foreignField: "video",
+          as: "comments",
+        },
+      },
+      {
+        $lookup: {
+          from: "likes",
+          localField: "_id",
+          foreignField: "video",
+          as: "likes",
+        },
+      },
+      {
+        $addFields: {
+          comments: { $size: "$comments" },
+          likes: { $size: "$likes" },
+          owner: { $first: "$owner" },
+        },
+      },
+    ]);
 
     if (!videos.length) {
       return res
@@ -127,7 +186,7 @@ const getChannelVideos = asyncHandler(async (req, res) => {
     return res
       .status(200)
       .json(
-        new apiResponse(200, videos, "Videos fetched successfully for owner")
+        new apiResponse(200, videos, "Videos fetched successfully for owner!")
       );
   } catch (error) {
     throw new apiError(

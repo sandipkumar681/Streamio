@@ -366,20 +366,6 @@ const fetchAllVideosForUser = asyncHandler(async (req, res) => {
   }
 });
 
-const fetchAllVideosForDashboardVideos = asyncHandler(async (req, res) => {
-  const video = await Video.find({ owner: req.user._id.toString() });
-
-  if (!video.length) {
-    return res
-      .status(400)
-      .json(new apiResponse(400, {}, "No videos are uploaded till now"));
-  }
-
-  return res
-    .status(200)
-    .json(new apiResponse(200, video, "Videos fetched successfully!"));
-});
-
 const deleteVideo = asyncHandler(async (req, res) => {
   try {
     const { videoId } = req.params;
@@ -569,7 +555,6 @@ export {
   uploadVideo,
   fetchVideoById,
   fetchAllVideosForUser, //Not optimised yet
-  fetchAllVideosForDashboardVideos,
   deleteVideo,
   togglePublishStatus,
   fetchVideosForHome,

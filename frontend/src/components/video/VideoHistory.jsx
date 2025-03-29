@@ -7,7 +7,7 @@ import { useSelector } from "react-redux";
 const VideoHistory = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
   const isLoggedIn = useSelector((state) => state.logInReducer.isLoggedIn);
   const location = useLocation();
   const navigate = useNavigate();
@@ -19,10 +19,10 @@ const VideoHistory = () => {
         if (response.success) {
           setHistory(response.data.reverse());
         } else {
-          setError("Failed to fetch watch history");
+          setMessage(response?.message || "Failed to fetch watch history!");
         }
       } catch (err) {
-        setError("Error fetching watch history");
+        setMessage("Error fetching watch history!");
       } finally {
         setLoading(false);
       }
@@ -43,9 +43,17 @@ const VideoHistory = () => {
   }, []);
 
   if (loading)
-    return <div className="text-white text-center mt-10">Loading...</div>;
-  if (error)
-    return <div className="text-red-500 text-center mt-10">{error}</div>;
+    return (
+      <div className="min-h-screen bg-gray-900 w-full text-white text-center">
+        Loading...
+      </div>
+    );
+  if (message)
+    return (
+      <div className="min-h-screen bg-gray-900 w-full text-white text-center">
+        {message}
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6 w-full">

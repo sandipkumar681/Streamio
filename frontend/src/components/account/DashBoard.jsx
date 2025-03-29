@@ -51,41 +51,53 @@ const Dashboard = () => {
         </div>
 
         {/* Subscriber Count */}
-        <div className="bg-gray-700 p-4 rounded-lg text-center mb-6">
-          <p className="text-lg font-semibold">Subscribers</p>
-          <p className="text-2xl font-bold">{channelData.totalSubscribers}</p>
-        </div>
+        {channelData.channelInfo ? (
+          <div className="bg-gray-700 p-4 rounded-lg text-center mb-6">
+            <p className="text-lg font-semibold">Subscribers</p>
+            <p className="text-2xl font-bold">{channelData.totalSubscribers}</p>
+          </div>
+        ) : (
+          ""
+        )}
 
         {/* Channel Stats */}
-        <div className="grid grid-cols-2 gap-4">
-          <StatCard
-            label="Total Videos"
-            value={channelData.channelInfo.totalVideos}
-          />
-          <StatCard
-            label="Total Likes"
-            value={channelData.channelInfo.totalLikes}
-          />
-          <StatCard
-            label="Total Comments"
-            value={channelData.channelInfo.totalComments}
-          />
-          <StatCard
-            label="Total Views"
-            value={channelData.channelInfo.totalViews}
-          />
-        </div>
+        {channelData.channelInfo ? (
+          <div className="grid grid-cols-2 gap-4">
+            <StatCard
+              label="Total Videos"
+              value={channelData.channelInfo?.totalVideos || 0}
+            />
+            <StatCard
+              label="Total Likes"
+              value={channelData.channelInfo?.totalLikes || 0}
+            />
+            <StatCard
+              label="Total Comments"
+              value={channelData.channelInfo?.totalComments || 0}
+            />
+            <StatCard
+              label="Total Views"
+              value={channelData.channelInfo?.totalViews || 0}
+            />
+          </div>
+        ) : (
+          <div className="text-center">No Videos Uploaded Yet!</div>
+        )}
       </div>
 
       {/* View All Videos Button */}
-      <div className="text-center">
-        <Link
-          to={`/dashboard/videos`}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-        >
-          View All Videos
-        </Link>
-      </div>
+      {channelData.channelInfo ? (
+        <div className="text-center">
+          <Link
+            to={`/dashboard/videos`}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+          >
+            View All Videos
+          </Link>
+        </div>
+      ) : (
+        ""
+      )}
     </div>
   );
 };

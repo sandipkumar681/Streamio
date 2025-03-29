@@ -592,6 +592,14 @@ const getWatchHistory = asyncHandler(async (req, res) => {
       },
     ]);
 
+    if (user.length === 0 || !user) {
+      return res
+        .status(400)
+        .json(
+          new apiResponse(400, {}, "You have not watched a video till now!")
+        );
+    }
+
     return res
       .status(200)
       .json(

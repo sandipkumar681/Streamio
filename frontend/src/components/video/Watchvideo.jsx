@@ -22,7 +22,7 @@ import PlaylistModal from "./PlaylistModal";
 import { timeDifference } from "../utils/timeDifference";
 import ShowTime from "../utils/ShowTime";
 import CommentsList from "../pages/commentList";
-import VideoDescription from "./videoDescription";
+import VideoDescription from "./VideoDescription";
 
 const Watchvideo = () => {
   // let rendered = useRef(0);

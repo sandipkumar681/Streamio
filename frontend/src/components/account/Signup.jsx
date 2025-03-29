@@ -95,7 +95,7 @@ function Signup() {
       setIsOtpSent(false);
       setTimeout(() => {
         navigate("/account/login");
-      }, 2000);
+      }, 1000);
     }
   };
 

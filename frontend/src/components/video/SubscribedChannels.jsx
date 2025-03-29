@@ -46,7 +46,7 @@ const SubscribedChannels = () => {
       }
     };
 
-    checkIsLogedIn;
+    checkIsLogedIn();
   }, []);
 
   const handleSubscription = async (channelId) => {
