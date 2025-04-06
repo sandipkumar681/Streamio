@@ -87,8 +87,6 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
   //   videos: {$cond:if:{ $in: [videoId] },then:,else:},
   // });
 
-  // console.log(isVideoPresent);
-
   const playlist = await Playlist.findByIdAndUpdate(
     playlistId,
     {

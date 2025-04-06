@@ -9,16 +9,16 @@ const LoginState = ({ children }) => {
   const checkAuth = async () => {
     try {
       const json = await backendCaller("/users/auth/status");
-      console.log(json);
+
       if (json.success) {
         setIsLoggedIn(true);
         setUserDetails(json.data);
       } else {
         const refreshTokenJson = await backendCaller("/users/refresh-tokens");
-        console.log(refreshTokenJson);
+
         if (refreshTokenJson.success) {
           const retryAuthStatusJson = await backendCaller("/users/auth/status");
-          console.log(retryAuthStatusJson);
+
           if (retryAuthStatusJson.success) {
             setIsLoggedIn(true);
             setUserDetails(retryAuthStatusJson.data);

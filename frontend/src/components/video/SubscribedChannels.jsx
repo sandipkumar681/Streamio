@@ -72,7 +72,7 @@ const SubscribedChannels = () => {
       console.error("Subscription error:", err);
     }
   };
-  console.log("After: ", channels);
+
   if (loading)
     return (
       <div className="min-h-screen w-full bg-gray-900 text-red-500 text-center pt-10  mt-10">

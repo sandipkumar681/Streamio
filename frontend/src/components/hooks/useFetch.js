@@ -8,7 +8,6 @@ export const useFetch = (url) => {
     const fetchData = async () => {
       const json = await backendCaller(url);
       setIsLoading(false);
-      // console.log(json.data);
 
       if (json.success) {
         setData(json.data);

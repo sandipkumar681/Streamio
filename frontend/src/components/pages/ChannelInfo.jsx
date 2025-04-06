@@ -17,8 +17,6 @@ const ChannelInfo = () => {
         if (json.success) {
           setChannel(json.data.channel);
           setVideos(json.data.videos);
-          console.log("Channel Data:", json.data.channel);
-          console.log("Videos:", json.data.videos);
         } else {
           setError("Failed to load channel data.");
         }

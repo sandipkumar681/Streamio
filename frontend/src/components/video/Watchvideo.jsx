@@ -21,13 +21,10 @@ import { useSelector } from "react-redux";
 import PlaylistModal from "./PlaylistModal";
 import { timeDifference } from "../utils/timeDifference";
 import ShowTime from "../utils/ShowTime";
-import CommentsList from "../pages/commentList";
+import CommentsList from "../pages/CommentList";
 import VideoDescription from "./VideoDescription";
 
 const Watchvideo = () => {
-  // let rendered = useRef(0);
-  // rendered.current += 1;
-  // console.log("Renders in watchVideos: ", rendered);
   const { id } = useParams();
   const [videoInfo, setVideoInfo] = useState({});
   const [relatedVideos, setRelatedVideos] = useState([]);
@@ -242,8 +239,6 @@ const Watchvideo = () => {
     } else if (e.key === " ") {
       e.preventDefault();
       handlePlayAndPause();
-    } else {
-      console.log(e.key);
     }
   };
 
@@ -300,7 +295,7 @@ const Watchvideo = () => {
 
           <div
             className={
-              !isMaximised ? `absolute bottom-0 left-0 w-full px-4 py-2` : `` //add infosection in maximised mode
+              !isMaximised ? `absolute bottom-0 left-0 w-full px-4 py-2` : ``
             }
             ref={infoSectionRef}
           >
@@ -361,14 +356,18 @@ const Watchvideo = () => {
           <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-4 mb-4">
             {/* Start: Channel Info */}
             <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
-              <img
-                src={videoInfo?.ownerDetails?.avatar}
-                alt="Channel Logo"
-                className="w-10 h-10 rounded-full"
-              />
-              <p className="text-white text-base sm:text-lg font-medium">
-                {videoInfo?.ownerDetails?.fullName}
-              </p>
+              <Link to={`/channel-info/${videoInfo.ownerDetails?.userName}`}>
+                <img
+                  src={videoInfo?.ownerDetails?.avatar}
+                  alt="Channel Logo"
+                  className="w-10 h-10 rounded-full"
+                />
+              </Link>
+              <Link to={`/channel-info/${videoInfo.ownerDetails?.userName}`}>
+                <p className="text-white text-base sm:text-lg font-medium">
+                  {videoInfo?.ownerDetails?.userName}
+                </p>
+              </Link>
               <button
                 onClick={handleSubscriptionToggle}
                 className={`px-3 sm:px-4 py-1 text-white text-sm sm:text-lg rounded-md transition ${
@@ -442,9 +441,9 @@ const Watchvideo = () => {
         />
 
         {/* Comment Section */}
-        <div className="p-4 bg-gray-800 rounded-lg">
-          <CommentsList videoId={videoInfo._id} />
-        </div>
+        {/* <div className="p-4 bg-gray-800 rounded-lg"> */}
+        <CommentsList videoId={videoInfo._id} />
+        {/* </div> */}
       </div>
 
       {/* Related Videos Section */}

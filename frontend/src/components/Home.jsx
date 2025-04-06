@@ -4,7 +4,7 @@ import { backendCaller } from "./utils/backendCaller";
 import { useDispatch } from "react-redux";
 import { makeSideBarClose } from "../features/SideBarSlice";
 
-function Home() {
+const Home = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [video, setVideo] = useState([]);
   const [message, setMessage] = useState(null);
@@ -35,15 +35,20 @@ function Home() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen w-full text-white bg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-screen">
-        Loading...
+      <div className="flex items-center justify-center h-screen w-full text-white bg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-screen text-center px-4">
+        <div>
+          <div className="text-2xl font-semibold mb-2">Please wait...</div>
+          <p className="text-gray-400">
+            The server is spinning up. This may take up to a few minutes ⏳
+          </p>
+        </div>
       </div>
     );
   }
 
   if (message) {
     return (
-      <div className="flex items-center justify-center h-screen w-full text-whitebg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-screen">
+      <div className="flex items-center justify-center h-screen w-full text-white bg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-screen">
         {message}
       </div>
     );
@@ -66,6 +71,6 @@ function Home() {
       </div>
     </div>
   );
-}
+};
 
 export default Home;

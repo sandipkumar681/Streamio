@@ -10,6 +10,7 @@ const Profile = () => {
   const [isEditAvatarOpen, setIsEditAvatarOpen] = useState(false);
   const [isEditCoverImageOpen, setIsEditCoverImageOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     checkAuth();
@@ -36,11 +37,10 @@ const Profile = () => {
 
     setIsLoading(false);
     if (json.success) {
-      // fetchUserData();
       setForm({});
       setIsEditAvatarOpen(false);
     } else {
-      console.log("Error in frontend while updating avatar!");
+      setMessage("Error in frontend while updating avatar!");
     }
   };
 
@@ -64,7 +64,7 @@ const Profile = () => {
       setForm({});
       setIsEditCoverImageOpen(false);
     } else {
-      console.log("Error in frontend while updating cover image!");
+      setMessage("Error in frontend while updating cover image!");
     }
   };
 
@@ -72,6 +72,14 @@ const Profile = () => {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-gray-900 text-white">
         <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (message) {
+    return (
+      <div className="flex items-center justify-center h-screen w-full bg-gray-900 text-white">
+        {message}
       </div>
     );
   }

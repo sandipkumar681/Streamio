@@ -135,57 +135,61 @@ const CommentsList = ({ videoId }) => {
     return (
       <>
         <h2 className="text-2xl font-semibold mb-4 text-white">Comments</h2>
+
         {isLoggedIn && (
-          <div className="flex items-center gap-4 mb-6 p-4 bg-gray-800 rounded-lg">
-            <img
-              src={userDetails.avatar}
-              alt={userDetails.userName}
-              className="w-12 h-12 rounded-full border border-gray-600"
-            />
-            <input
-              type="text"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              className="flex-1 p-2 bg-gray-700 text-white rounded-lg outline-none"
-              placeholder="Add a comment..."
-            />
-            <button
-              onClick={handleAddComment}
-              className="bg-blue-500 px-4 py-2 rounded-lg hover:bg-blue-600 transition"
-            >
-              Post
-            </button>
+          <div className="bg-gray-800 rounded-lg p-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+              {/* Input and Button */}
+              <div className="flex-1 flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  className="flex-1 p-2 bg-gray-700 text-white rounded-lg outline-none"
+                  placeholder="Add a comment..."
+                />
+                <button
+                  onClick={handleAddComment}
+                  className="bg-blue-500 px-4 py-2 rounded-lg hover:bg-blue-600 transition font-medium text-white"
+                >
+                  Post
+                </button>
+              </div>
+            </div>
           </div>
         )}
+
         <p className="text-gray-400 text-center">No comments yet.</p>
       </>
     );
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg shadow-lg text-white">
-      <h2 className="text-2xl font-semibold mb-4">Comments</h2>
-      {userDetails && !comments[0].isUserComment && (
-        <div className="flex items-center gap-4 mb-6 p-4 bg-gray-800 rounded-lg">
-          <img
-            src={userDetails.avatar}
-            alt={userDetails.userName}
-            className="w-12 h-12 rounded-full border border-gray-600"
-          />
-          <input
-            type="text"
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            className="flex-1 p-2 bg-gray-700 text-white rounded-lg outline-none"
-            placeholder="Add a comment..."
-          />
-          <button
-            onClick={handleAddComment}
-            className="bg-blue-500 px-4 py-2 rounded-lg hover:bg-blue-600 transition"
-          >
-            Post
-          </button>
+      <h2 className="text-2xl font-semibold mb-4 text-white">Comments</h2>
+
+      {isLoggedIn && (
+        <div className="bg-gray-800 rounded-lg p-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            {/* Input and Button */}
+            <div className="flex-1 flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="flex-1 p-2 bg-gray-700 text-white rounded-lg outline-none"
+                placeholder="Add a comment..."
+              />
+              <button
+                onClick={handleAddComment}
+                className="bg-blue-500 px-4 py-2 rounded-lg hover:bg-blue-600 transition font-medium text-white"
+              >
+                Post
+              </button>
+            </div>
+          </div>
         </div>
       )}
+
       <div className="space-y-4">
         {comments.map((comment) => (
           <div

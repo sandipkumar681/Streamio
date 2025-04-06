@@ -82,7 +82,7 @@ const DashBoardVideos = () => {
       const json = await backendCaller(
         `/videos/toggle-publish-status/${videoId}`
       );
-      console.log(json);
+
       if (json.success) {
         const updatedVideos = videos.map((video) =>
           video._id === videoId
